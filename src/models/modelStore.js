@@ -6,6 +6,7 @@
 // 그 안의 부품도 복제·삭제할 수 있음 (그룹 편집: src/editor/selection.js).
 // 숨기기 = visible 끄기 (화면·내보내기·그림자·밟기 모두 빠짐)
 // 잠그기 = userData.locked (클릭 선택만 안 됨. 1인칭 지형 따라가기에서는 그대로 밟힘)
+// 원본 파일은 '묶음'(한 번에 불러온 파일들)으로 기억 → 프로젝트 파일 하나에 같이 담음 (src/save/project.js)
 import * as THREE from 'three';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { emit } from '../core/events.js';
@@ -17,24 +18,28 @@ export function createModelStore(scene) {
   group.name = '모델들';
   scene.add(group);
 
-  // 원본 파일 기억 (4단계 프로젝트 저장 때 사용). id → { name, entries }
-  const sources = new Map();
-  let nextSourceId = 1;
+  // 원본 파일 묶음 (프로젝트 저장에 그대로 담음). 한 번에 불러온 파일들 = 묶음 하나.
+  // id → { id, files: [{ file, path }] }
+  const bundles = new Map();
 
-  /** 불러온 3D 객체를 장면에 추가하고 root 를 돌려준다 */
-  function add(object, { name, entries = [] }) {
-    const sourceId = String(nextSourceId++);
-    sources.set(sourceId, { name, entries });
+  /** 불러온 파일들을 묶음으로 기억하고 id 를 돌려줌 (프로젝트에서 열 때는 원래 id 를 그대로 씀) */
+  function addBundle(files, id = newId()) {
+    if (!bundles.has(id)) bundles.set(id, { id, files });
+    return id;
+  }
 
+  /**
+   * 불러온 3D 객체를 장면에 추가하고 root 를 돌려준다.
+   * @param source  { bundleId, modelPath } — 어느 묶음의 어느 파일인지 (프로젝트 저장용)
+   */
+  function add(object, { name, source = null }) {
+    tagSourcePaths(object);
     const root = new THREE.Group();
     root.name = name;
-    root.userData = { kind: 'model', selectable: true, sourceId };
+    root.userData = { kind: 'model', selectable: true, source };
     object.userData.modelContent = true; // 불러온 내용 (그룹 편집할 때 root 대신 들어가는 곳)
     root.add(object);
-    prepareFastRaycast(object);
-    object.traverse((o) => {
-      if (o.isMesh) o.castShadow = o.receiveShadow = true; // 그림자 드리우고 받기 (src/render/shadows.js)
-    });
+    prepare(object);
 
     // 기준점을 바닥 한가운데로: 모델을 옮겨서 바닥 중앙이 root 원점에 오게 함
     const box = new THREE.Box3().setFromObject(object, true);
@@ -48,6 +53,44 @@ export function createModelStore(scene) {
     group.add(root);
     emit('models-changed');
     return root;
+  }
+
+  /**
+   * 프로젝트에서 되살리기: 내용(content)은 이미 저장된 구조대로 만들어진 것. 기준점 맞추기 안 함.
+   * @param state  { name, source, position, quaternion, scale, visible, locked }
+   */
+  function restore(content, state) {
+    const root = new THREE.Group();
+    root.name = state.name;
+    root.userData = { kind: 'model', selectable: true, source: state.source };
+    if (state.locked) root.userData.locked = true;
+    root.visible = state.visible !== false;
+    root.position.fromArray(state.position);
+    root.quaternion.fromArray(state.quaternion);
+    root.scale.fromArray(state.scale);
+    content.userData.modelContent = true;
+    root.add(content);
+    prepare(content);
+    group.add(root);
+    return root;
+  }
+
+  /** 빠른 광선 검사 준비 + 그림자 드리우고 받기 (src/render/shadows.js) */
+  function prepare(object) {
+    prepareFastRaycast(object);
+    object.traverse((o) => {
+      if (o.isMesh) o.castShadow = o.receiveShadow = true;
+    });
+  }
+
+  /** 모두 지우기 (새 프로젝트, 프로젝트 열기) */
+  function clear() {
+    for (const root of [...group.children]) {
+      root.removeFromParent();
+      disposeUnused(root, group);
+    }
+    bundles.clear();
+    emit('models-changed');
   }
 
   /**
@@ -90,13 +133,34 @@ export function createModelStore(scene) {
   return {
     group,
     add,
+    addBundle,
+    restore,
+    clear,
     duplicate,
     remove,
     setHidden,
     setLocked,
     list: () => group.children,
-    getSource: (root) => sources.get(root.userData.sourceId),
+    getBundle: (id) => bundles.get(id),
+    /** 지금 장면의 모델들이 쓰는 묶음만 */
+    usedBundles() {
+      const ids = new Set(group.children.map((r) => r.userData.source?.bundleId).filter(Boolean));
+      return [...ids].map((id) => bundles.get(id)).filter(Boolean);
+    },
   };
+}
+
+/**
+ * 불러온 내용의 모든 물체에 '원본 파일 안 위치'(자식 순서 경로) 표시: 내용 = '', 첫째 자식 = '0', 그 첫째 = '0/0'.
+ * 복제해도 userData 가 같이 복사되므로 '어느 원본 물체의 복제인지' 알 수 있음 → 프로젝트 저장(src/save/modelState.js)
+ */
+export function tagSourcePaths(object, path = '') {
+  object.userData.srcPath = path;
+  object.children.forEach((child, i) => tagSourcePaths(child, path === '' ? String(i) : `${path}/${i}`));
+}
+
+function newId() {
+  return globalThis.crypto?.randomUUID?.() || `b${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function collectResources(object) {

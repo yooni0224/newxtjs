@@ -219,6 +219,31 @@ export function createWalkMode({ viewer, editorCam, selection, getSurfaces }) {
       emit('walk-view-changed');
     },
     getPitchDegrees: () => THREE.MathUtils.radToDeg(pitch),
+    /** 지금 1인칭 상태 (컷 저장용) */
+    getState: () => ({
+      x: camera.position.x,
+      z: camera.position.z,
+      groundY,
+      eyeHeight,
+      yaw,
+      pitch,
+    }),
+    /** 저장된 1인칭 상태로 (1인칭이 아니면 들어감) — 컷 고르기 */
+    setState(state) {
+      if (!active) {
+        enterAt({ x: state.x, z: state.z, groundY: state.groundY, yaw: state.yaw });
+      } else {
+        camera.position.x = state.x;
+        camera.position.z = state.z;
+        groundY = state.groundY;
+        shownGroundY = state.groundY;
+        yaw = state.yaw;
+      }
+      pitch = THREE.MathUtils.clamp(state.pitch ?? 0, -1.55, 1.55);
+      setEyeHeight(state.eyeHeight ?? eyeHeight);
+      applyView();
+      emit('walk-view-changed');
+    },
     /** 바라보는 방향으로 dist(m) 앞의 바닥 위치 */
     pointAhead(dist) {
       return camera.position.clone().addScaledVector(forward(), dist).setY(0);

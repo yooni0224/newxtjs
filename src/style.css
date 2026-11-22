@@ -367,3 +367,71 @@ button.active kbd { color: #fff; }
   word-break: break-all;
 }
 
+
+/* ---------- 프로젝트 · 컷 목록 · 복구 안내 ---------- */
+.field input[type="text"] { font-size: 13px; }
+.project-buttons { margin-top: 8px; }
+.project-buttons kbd { display: none; }
+.dim-status { font-size: 11px; min-height: 1em; }
+
+.cut-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.cut-list:empty::before {
+  content: '아직 저장한 컷이 없어요.';
+  display: block;
+  color: var(--text-dim);
+  font-size: 12px;
+  padding: 4px 0;
+}
+.cut-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--panel-line);
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+.cut-item:hover { background: var(--btn-hover); }
+.cut-item.active { border-color: var(--accent); background: rgba(76, 141, 255, 0.15); }
+.cut-main { flex: 1; min-width: 0; }
+.cut-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cut-info { color: var(--text-dim); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cut-item input {
+  width: 100%;
+  font: inherit;
+  color: var(--text);
+  background: #15171b;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+.cut-item button {
+  padding: 2px 6px;
+  font-size: 12px;
+  background: none;
+  border-color: transparent;
+  color: var(--text-dim);
+}
+.cut-item button:hover { color: var(--text); border-color: var(--panel-line); }
+
+#recovery-banner {
+  position: absolute;
+  left: 50%;
+  top: 50px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px 8px 14px;
+  border-radius: 8px;
+  background: rgba(25, 28, 33, 0.95);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  z-index: 5;
+}
+#recovery-banner button { padding: 5px 12px; }

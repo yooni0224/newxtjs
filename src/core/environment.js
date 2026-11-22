@@ -1,5 +1,6 @@
 // 바닥 그리드와 기본 조명, 배경색.
 import * as THREE from 'three';
+import { emit } from './events.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const GRID_SIZE = 200; // 그리드 전체 크기(m)
@@ -37,6 +38,7 @@ export function createEnvironment(viewer) {
     hemi,
     setGridVisible(visible) {
       grid.visible = visible;
+      emit('grid-visibility-changed', visible);
     },
   };
 }

@@ -31,6 +31,10 @@ import { setupCutPanel } from './ui/cutPanel.js';
 import { setupHelpLine } from './ui/helpLine.js';
 import { setupLayerPanel } from './ui/layerPanel.js';
 import { setupShadowPanel } from './ui/shadowPanel.js';
+import { setupCutListPanel } from './ui/cutListPanel.js';
+import { setupProjectPanel } from './ui/projectPanel.js';
+import { createCuts } from './save/cuts.js';
+import { createProject, PROJECT_EXT } from './save/project.js';
 import { toast } from './ui/toast.js';
 
 // ---------- 화면 만들기 ----------
@@ -110,10 +114,16 @@ setupInspector(actions);
 setupCameraPanel({ walk, lens, picker, camera: viewer.camera });
 setupPeoplePanel({ people, picker, selection, camera: viewer.camera, poseMode });
 setupToolbar({ gizmo, env, people });
-setupCutPanel({ viewer, frame, people, lineOverlay, shadows, ao });
+const exportPanel = setupCutPanel({ viewer, frame, people, lineOverlay, shadows, ao });
 setupShadowPanel({ shadows, ao });
+
+// ---------- 저장: 컷 목록 · 프로젝트 · 자동 저장 ----------
+const cuts = createCuts({ camera: viewer.camera, editorCam, walk, lens, frame, shadows });
+setupCutListPanel({ cuts });
+const project = createProject({ env, store, people, cuts, shadows, ao, lineOverlay, exportPanel, frame, lens, walk, selection, poseMode });
 setupHelpLine({ walk, picker, poseMode, selection });
 setupLayerPanel({ store, selection });
+const projectPanel = setupProjectPanel({ project, store }); // 맨 마지막: 이 뒤로 생기는 변경부터 자동 저장
 setupFileInput(viewport, importFiles);
 
 // 사람 모형을 숨기면 선택도 해제
@@ -131,6 +141,10 @@ on('models-changed', () => {
 const GAP = 0.5; // 여러 개를 한 번에 불러올 때 사이 간격(m)
 
 async function importFiles(entries, dropPoint) {
+  // 프로젝트 파일(.webtoon3d)을 놓으면 프로젝트 열기
+  const projectEntry = entries.find((e) => e.path.toLowerCase().endsWith(PROJECT_EXT));
+  if (projectEntry) return projectPanel.open(projectEntry.file);
+
   const loading = toast('불러오는 중…', 'info', 120000);
   await nextFrame(); // 알림이 먼저 그려지도록
 
@@ -140,10 +154,11 @@ async function importFiles(entries, dropPoint) {
   } finally {
     loading.remove();
   }
-  const { models, errors, warnings } = result;
+  const { models, files, errors, warnings } = result;
   for (const msg of errors) toast(msg, 'error', 9000);
   for (const msg of warnings) toast(msg, 'warn', 7000);
   if (!models.length) return;
+  const bundleId = store.addBundle(files); // 원본 파일 묶음 (프로젝트 파일에 같이 담음)
 
   const wasEmpty = store.list().length === 0;
   const anchor = placementPoint(dropPoint);
@@ -155,7 +170,7 @@ async function importFiles(entries, dropPoint) {
   const roots = [];
   let edge = 0;
   models.forEach((m, i) => {
-    const root = store.add(m.object, { name: m.name, entries });
+    const root = store.add(m.object, { name: m.name, source: { bundleId, modelPath: m.entry.path } });
     const size = measure(root);
     const offset = i === 0 ? 0 : edge + GAP + size.x / 2;
     root.position.copy(anchor).addScaledVector(right, offset);
@@ -193,4 +208,4 @@ function nextFrame() {
 }
 
 // 개발 중 브라우저 콘솔에서 확인용 (예: app.store.list())
-if (import.meta.env.DEV) window.app = { viewer, store, selection, people, poseMode, gizmo, editorCam, lens, walk, picker, frame, lineOverlay, shadows, ao, events: { on, emit } };
+if (import.meta.env.DEV) window.app = { viewer, store, selection, people, poseMode, gizmo, editorCam, lens, walk, picker, frame, lineOverlay, shadows, ao, cuts, project, projectPanel, events: { on, emit } };

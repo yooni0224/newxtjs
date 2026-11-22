@@ -20,7 +20,8 @@ const draco = new DRACOLoader().setDecoderPath({
 /**
  * 파일 목록에서 모델 파일을 찾아 불러온다.
  * @param {{file: File, path: string}[]} entries  path 는 폴더 안 경로 (예: 'house/scene.gltf')
- * @returns {Promise<{ models: {name, object, entry}[], errors: string[], warnings: string[] }>}
+ * @returns {Promise<{ models: {name, object, entry}[], files, errors: string[], warnings: string[] }>}
+ *   files = ZIP 을 푼 뒤의 파일 목록 (프로젝트 저장에 원본으로 담음)
  */
 export async function loadModelsFromFiles(entries) {
   const all = await expandZips(entries);
@@ -32,7 +33,7 @@ export async function loadModelsFromFiles(entries) {
 
   if (modelEntries.length === 0) {
     errors.push('불러올 모델 파일(GLB/GLTF/OBJ)이 없어요.');
-    return { models, errors, warnings };
+    return { models, files: all, errors, warnings };
   }
 
   for (const entry of modelEntries) {
@@ -59,7 +60,19 @@ export async function loadModelsFromFiles(entries) {
       );
     }
   }
-  return { models, errors, warnings };
+  return { models, files: all, errors, warnings };
+}
+
+/**
+ * 파일 묶음(files) 안의 모델 파일 하나(path)만 다시 불러오기 — 프로젝트 열기에서 씀.
+ * @returns {Promise<THREE.Object3D>}
+ */
+export async function loadModelAt(files, path) {
+  const entry = files.find((e) => e.path === path);
+  if (!entry) throw new Error(`프로젝트 안에 ${path} 파일이 없어요.`);
+  const { object } = await loadOne(entry, createResolver(entry, files));
+  cleanUp(object);
+  return object;
 }
 
 async function loadOne(entry, resolver) {

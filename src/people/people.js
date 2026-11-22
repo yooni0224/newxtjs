@@ -87,6 +87,7 @@ export function createPeople(scene) {
     remove,
     setHeight,
     applyPose,
+    getPose,
     list: () => group.children,
     isVisible: () => group.visible,
     setVisible,

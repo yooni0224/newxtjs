@@ -1,6 +1,6 @@
 // '컷 프레임' 칸 + '내보내기' 칸.
 // 비율 버튼 값은 index.html 의 data-ratio="가로:세로" 에서 바꿀 수 있음.
-import { on } from '../core/events.js';
+import { on, emit } from '../core/events.js';
 import { renderCut, downloadPng, exportSize, MAX_EXPORT_WIDTH } from '../export/exportImage.js';
 import { bindNumberField, showNumber } from './numberField.js';
 import { toast } from './toast.js';
@@ -48,16 +48,23 @@ export function setupCutPanel({ viewer, frame, people, lineOverlay, shadows, ao 
   renderCrease.addEventListener('input', applyRenderLines);
   on('render-lines-changed', refresh);
 
+  const chkPeople = $('chk-export-people');
+  /** 내보내기 설정이 바뀜 → 화면 갱신 + 알림 (자동 저장) */
+  const changed = () => {
+    refresh();
+    emit('export-settings-changed');
+  };
   widthInput.max = String(MAX_EXPORT_WIDTH);
-  bindNumberField(widthInput, () => refresh());
+  bindNumberField(widthInput, changed);
   for (const btn of modeButtons) {
     btn.addEventListener('click', () => {
       mode = btn.dataset.exportMode;
-      refresh();
+      changed();
     });
   }
-  lineWidth.addEventListener('input', refresh);
-  crease.addEventListener('input', refresh);
+  lineWidth.addEventListener('input', changed);
+  crease.addEventListener('input', changed);
+  chkPeople.addEventListener('change', changed);
 
   const exportWidth = () => parseFloat(widthInput.value) || 2000;
 
@@ -114,7 +121,7 @@ export function setupCutPanel({ viewer, frame, people, lineOverlay, shadows, ao 
         renderLines: lineOverlay.getSettings(),
         shadows,
         ao,
-        hide: $('chk-export-people').checked ? [] : [people.group],
+        hide: chkPeople.checked ? [] : [people.group],
       });
       const s = frame.getState();
       const ratio = s.enabled ? `${s.ratioW}x${s.ratioH}` : 'full';
@@ -129,6 +136,26 @@ export function setupCutPanel({ viewer, frame, people, lineOverlay, shadows, ao 
       loading.remove();
     }
   });
+
+  return {
+    /** 내보내기 설정 (프로젝트 저장용) */
+    getExportSettings: () => ({
+      mode,
+      width: exportWidth(),
+      lineArt: { width: parseFloat(lineWidth.value), crease: parseFloat(crease.value) },
+      includePeople: chkPeople.checked,
+    }),
+    setExportSettings(v = {}) {
+      if (v.mode) mode = v.mode;
+      if (v.width) widthInput.value = String(v.width);
+      if (v.lineArt) {
+        lineWidth.value = String(v.lineArt.width);
+        crease.value = String(v.lineArt.crease);
+      }
+      if (v.includePeople !== undefined) chkPeople.checked = v.includePeople;
+      refresh();
+    },
+  };
 }
 
 function timestamp() {

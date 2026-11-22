@@ -27,4 +27,7 @@ export function setupToolbar({ gizmo, env, people }) {
   });
 
   chkGrid.addEventListener('change', () => env.setGridVisible(chkGrid.checked));
+  on('grid-visibility-changed', (visible) => {
+    chkGrid.checked = visible;
+  });
 }

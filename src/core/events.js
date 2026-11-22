@@ -24,6 +24,10 @@
 //   'render-lines-changed'     일반 렌더 선 설정 바뀜     값: { enabled, width, crease }
 //   'shadows-changed'          그림자·해 방향 설정 바뀜   값: { enabled, azimuth, elevation, darkness, softness, quality }
 //   'ao-changed'               AO(구석 어둡게) 설정 바뀜  값: { enabled, strength, inShadowExport }
+//   'export-settings-changed'  내보내기 설정(모드·가로 픽셀·선화 선·사람 포함) 바뀜  값: 없음
+//   'grid-visibility-changed'  바닥 그리드 보이기 바뀜     값: true | false
+//   'cuts-changed'             컷 목록·고른 컷 바뀜       값: { cuts, activeId }
+//   'project-changed'          프로젝트 이름 바뀜·프로젝트를 엶  값: { name }
 
 const bus = new EventTarget();
 

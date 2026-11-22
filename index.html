@@ -38,6 +38,12 @@
           <span id="help-group" hidden>그룹 편집 · 클릭: 부품 고르기 · 더블클릭: 더 안으로 · Ctrl+D 복제 · Del 삭제 · Esc: 한 단계 위로</span>
           <span id="help-walk" hidden>드래그: 고개 돌리기 · W A S D: 이동 · Shift: 빠르게 · Q / E: 낮게 / 높게 · Esc: 나가기</span>
         </div>
+        <!-- 자동 저장 복구 안내 (src/ui/projectPanel.js) -->
+        <div id="recovery-banner" hidden>
+          <span id="recovery-text"></span>
+          <button id="btn-recover" class="primary">복구</button>
+          <button id="btn-recover-discard">버리기</button>
+        </div>
         <div id="toasts"></div>
       </main>
 
@@ -45,11 +51,23 @@
       <aside id="panel">
         <h1>웹툰 배경 3D</h1>
 
-        <!-- 파일 (src/models/dropZone.js) -->
+        <!-- 파일: 프로젝트 저장/열기 (src/ui/projectPanel.js, src/save/), 모델 불러오기 (src/models/dropZone.js) -->
         <details class="sec" open>
           <summary>파일</summary>
+          <label class="field">
+            프로젝트
+            <input id="project-name" type="text" maxlength="60" spellcheck="false" />
+          </label>
+          <div class="btn-row project-buttons">
+            <button id="btn-project-save" title="Ctrl+S (Ctrl+Shift+S 또는 Shift+클릭: 다른 이름으로)">저장 <kbd>Ctrl+S</kbd></button>
+            <button id="btn-project-open">열기…</button>
+            <button id="btn-project-new">새로</button>
+          </div>
+          <input id="project-input" type="file" accept=".webtoon3d" hidden />
+          <p class="hint">프로젝트 파일(.webtoon3d) 하나에 모델 파일까지 다 들어 있어서, 그 파일만 옮기면 다른 컴퓨터에서도 열립니다.</p>
+          <p id="autosave-status" class="hint dim-status"></p>
           <button id="btn-open" class="wide">모델 불러오기…</button>
-          <input id="file-input" type="file" multiple accept=".glb,.gltf,.obj,.mtl,.bin,.zip,.png,.jpg,.jpeg,.webp" hidden />
+          <input id="file-input" type="file" multiple accept=".glb,.gltf,.obj,.mtl,.bin,.zip,.png,.jpg,.jpeg,.webp,.webtoon3d" hidden />
           <p class="hint">GLTF·OBJ는 .bin/.mtl/텍스처를 함께 선택하거나 폴더째 끌어다 놓으세요.</p>
         </details>
 
@@ -177,7 +195,7 @@
             <input id="sun-elevation" type="range" min="0" max="90" step="1" value="50" />
             <span id="sun-elevation-value" class="value"></span>
           </label>
-          <p class="hint">방위 0° 북(-Z) · 90° 동(+X) · 180° 남 · 270° 서. 높이 0° 지평선 ~ 90° 머리 위.</p>
+          <p class="hint">방위 0° 북(-Z) · 90° 동(+X) · 180° 남 · 270° 서. 높이 0° 지평선 ~ 90° 머리 위. 해 방향은 컷마다 저장됩니다.</p>
           <label class="field">
             진하기
             <input id="shadow-darkness" type="range" min="0" max="100" step="1" value="70" />
@@ -207,6 +225,14 @@
           </label>
           <label class="check"><input id="chk-ao-shadow-export" type="checkbox" checked /> '그림자만' 내보내기에 포함</label>
           <p class="hint">구석·물체끼리 맞닿은 곳을 자연스럽게 어둡게 합니다. 그림자를 꺼도 쓸 수 있어요.</p>
+        </details>
+
+        <!-- 컷 목록 (src/ui/cutListPanel.js, src/save/cuts.js) -->
+        <details class="sec" open>
+          <summary>컷 목록</summary>
+          <button id="btn-cut-add" class="wide primary">지금 시점을 컷으로 저장</button>
+          <ul id="cut-list" class="cut-list"></ul>
+          <p class="hint">컷을 누르면 그 시점·화각·컷 비율·해 방향으로 돌아갑니다. ⟳ 지금 상태로 바꾸기 · ✎ 이름 · ✕ 지우기</p>
         </details>
 
         <!-- 컷 프레임 (src/ui/cutPanel.js, src/cut/cutFrame.js) -->
