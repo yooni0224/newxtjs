@@ -1,8 +1,9 @@
 // 컷 프레임 안쪽을 PNG 로 내보내기.
-//   일반 렌더: 화면에 보이는 그대로 (그리드·핸들·표시는 빼고) + 켜 두었으면 외곽선·모서리선
+//   일반 렌더: 화면에 보이는 그대로 (그리드·핸들·표시는 빼고) + 켜 두었으면 AO(구석 어둡게)·외곽선·모서리선
 //   선화: 흰 면 + 검은 선, 배경 투명
-//   그림자만: 흰 바탕에 그림자만 회색 (곱하기 레이어용, src/export/shadowOnly.js)
-// 선 찾기는 src/render/edgeLines.js
+//   그림자만: 흰 바탕에 그림자만 회색 (곱하기 레이어용, src/export/shadowOnly.js) + 골랐으면 AO
+// 그림자는 화면 품질 설정과 상관없이 최고 품질로 (시야를 깊이 조각으로 나눠 그림: shadows.renderView)
+// 선 찾기는 src/render/edgeLines.js, AO 는 src/render/ao.js
 // 숨긴 것(visible 꺼짐: 레이어 패널의 눈, 사람 제외 등)은 어느 모드에도 나오지 않음.
 import * as THREE from 'three';
 import { renderEdgeImage } from '../render/edgeLines.js';
@@ -31,11 +32,12 @@ export function renderLineWidth(screenWidth, rect, outW) {
  * @param mode         'normal' | 'line' | 'shadow'
  * @param lineArt      선화 설정 { width: 결과 px, crease: 도 }
  * @param renderLines  일반 렌더 선 설정 { enabled, width: 화면 px, crease: 도 } (src/render/lineOverlay.js)
- * @param shadows      src/render/shadows.js ('그림자만' 에 필요)
+ * @param shadows      src/render/shadows.js
+ * @param ao           src/render/ao.js
  * @param hide         함께 숨길 것들 (예: 사람 모형 그룹)
  * @returns {HTMLCanvasElement}
  */
-export function renderCut({ viewer, rect, width, mode, lineArt, renderLines, shadows, hide = [] }) {
+export function renderCut({ viewer, rect, width, mode, lineArt, renderLines, shadows, ao, hide = [] }) {
   const { renderer, camera, canvas } = viewer;
   const { w: outW, h: outH } = exportSize(rect, width);
 
@@ -53,14 +55,18 @@ export function renderCut({ viewer, rect, width, mode, lineArt, renderLines, sha
     if (mode === 'line') {
       return renderEdges(viewer, outW, outH, { lineWidth: lineArt.width, creaseAngle: lineArt.crease, fill: true });
     }
+    const aoSettings = ao?.getSettings();
     if (mode === 'shadow') {
-      return renderShadowOnly(viewer, outW, outH, {
+      const image = renderShadowOnly(viewer, outW, outH, {
         shadows,
         darkness: shadows.getSettings().darkness,
-        renderNormal: (w, h) => renderNormal(viewer, w, h),
+        renderNormal: (w, h) => renderNormal(viewer, shadows, w, h),
       });
+      if (aoSettings?.enabled && aoSettings.inShadowExport) multiply(image, ao.renderImage(outW, outH));
+      return image;
     }
-    const image = renderNormal(viewer, outW, outH);
+    const image = renderNormal(viewer, shadows, outW, outH);
+    if (aoSettings?.enabled) multiply(image, ao.renderImage(outW, outH));
     if (renderLines?.enabled) {
       const lines = renderEdges(viewer, outW, outH, {
         lineWidth: renderLineWidth(renderLines.width, rect, outW),
@@ -92,15 +98,24 @@ function renderEdges(viewer, outW, outH, options) {
   }
 }
 
-/** 일반 렌더: 화면용 캔버스를 잠깐 결과 크기로 바꿔 그린 뒤 복사 */
-function renderNormal({ renderer, scene, camera }, outW, outH) {
+/** 그림(image) 위에 흑백 그림(shade)을 곱하기로 겹침 (크기가 다르면 늘려서) */
+function multiply(image, shade) {
+  const ctx = image.getContext('2d');
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.drawImage(shade, 0, 0, image.width, image.height);
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+/** 일반 렌더: 화면용 캔버스를 잠깐 결과 크기로 바꿔 그린 뒤 복사. 그림자는 최고 품질로 */
+function renderNormal({ renderer, scene, camera }, shadows, outW, outH) {
   renderer.setPixelRatio(1);
   renderer.setSize(outW, outH, false);
   const gl = renderer.getContext();
   if (gl.drawingBufferWidth < outW || gl.drawingBufferHeight < outH) {
     throw new Error(`이 크기(${outW}×${outH})는 브라우저가 그릴 수 없어요. 가로 픽셀을 줄여 주세요.`);
   }
-  renderer.render(scene, camera);
+  if (shadows) shadows.renderView(outW);
+  else renderer.render(scene, camera);
   const out = document.createElement('canvas');
   out.width = outW;
   out.height = outH;

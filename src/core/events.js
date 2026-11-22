@@ -23,6 +23,7 @@
 //   'frame-changed'            컷 프레임 설정 바뀜        값: { enabled, ratioW, ratioH, thirds, horizon }
 //   'render-lines-changed'     일반 렌더 선 설정 바뀜     값: { enabled, width, crease }
 //   'shadows-changed'          그림자·해 방향 설정 바뀜   값: { enabled, azimuth, elevation, darkness, softness, quality }
+//   'ao-changed'               AO(구석 어둡게) 설정 바뀜  값: { enabled, strength, inShadowExport }
 
 const bus = new EventTarget();
 

@@ -188,6 +188,7 @@
             <input id="shadow-softness" type="range" min="0" max="100" step="1" value="30" />
             <span id="shadow-softness-value" class="value"></span>
           </label>
+          <p class="hint">부드러움 100% ≈ 그림자 가장자리가 30cm 번짐.</p>
           <h3>품질</h3>
           <div class="btn-row">
             <button data-shadow-quality="low">낮음</button>
@@ -195,6 +196,17 @@
             <button data-shadow-quality="high">높음</button>
           </div>
           <p id="shadow-quality-hint" class="hint"></p>
+
+          <!-- 구석 어둡게 AO (src/render/ao.js) -->
+          <h3>구석 어둡게 (AO)</h3>
+          <label class="check"><input id="chk-ao" type="checkbox" /> 앰비언트 오클루전 켜기</label>
+          <label class="field">
+            세기
+            <input id="ao-strength" type="range" min="0" max="100" step="1" value="60" />
+            <span id="ao-strength-value" class="value"></span>
+          </label>
+          <label class="check"><input id="chk-ao-shadow-export" type="checkbox" checked /> '그림자만' 내보내기에 포함</label>
+          <p class="hint">구석·물체끼리 맞닿은 곳을 자연스럽게 어둡게 합니다. 그림자를 꺼도 쓸 수 있어요.</p>
         </details>
 
         <!-- 컷 프레임 (src/ui/cutPanel.js, src/cut/cutFrame.js) -->

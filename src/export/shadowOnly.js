@@ -54,8 +54,9 @@ export function renderShadowOnly({ scene }, outW, outH, { shadows, darkness, ren
   }
 }
 
-/** 유리처럼 비치는 재질 (그림자만 그릴 때는 빼고 그 뒤가 보이게) */
+/** 유리처럼 비치는 재질 (그림자만 그릴 때는 빼고 그 뒤가 보이게). 바닥 그림자 받이는 빼면 안 됨 */
 function isSeeThrough(m) {
+  if (m.isShadowMaterial) return false;
   if (m.transmission > 0) return true;
   return m.transparent && m.opacity < 0.95 && !m.map && !m.alphaMap;
 }
@@ -87,7 +88,8 @@ function makeShadowMaterial(m, darknessUniform) {
           // 해 반대쪽을 향한 면도 그림자 (경계는 살짝 부드럽게)
           sunLit *= smoothstep( 0.0, 0.12, dot( normal, directionalLights[ 0 ].direction ) );
         #endif
-        gl_FragColor = vec4( vec3( 1.0 - shadowDarkness * ( 1.0 - sunLit ) ), 1.0 );`,
+        gl_FragColor = vec4( vec3( 1.0 - shadowDarkness * ( 1.0 - sunLit ) ), 1.0 );
+`,
       )
       .replace('#include <tonemapping_fragment>', '')
       .replace('#include <colorspace_fragment>', '')

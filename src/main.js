@@ -18,8 +18,10 @@ import { createPeople } from './people/people.js';
 import { createPoseMode } from './people/poseMode.js';
 import { createLens } from './camera/lens.js';
 import { createCutFrame } from './cut/cutFrame.js';
+import { createRenderPipeline } from './render/pipeline.js';
 import { createLineOverlay } from './render/lineOverlay.js';
 import { createShadows } from './render/shadows.js';
+import { createAO } from './render/ao.js';
 import { createWalkMode } from './camera/walkMode.js';
 import { setupToolbar } from './ui/toolbar.js';
 import { setupInspector } from './ui/inspector.js';
@@ -43,10 +45,13 @@ const selection = createSelection(viewer, gizmo, () => [...store.list(), ...peop
 const poseMode = createPoseMode({ viewer, gizmo, selection, people }); // 사람 관절 돌리기
 const frame = createCutFrame(viewer); // 컷 프레임 (화각·내보내기 기준)
 const lens = createLens(viewer, frame.getRect, 35); // 처음 화각 35mm
-const lineOverlay = createLineOverlay(viewer); // 일반 렌더 선 (화면 미리보기 + 설정)
 const walk = createWalkMode({ viewer, editorCam, selection, getSurfaces: () => store.list() });
 // 그림자: 모델·사람이 드리우고 받음, 해 방향·진하기·품질
-const shadows = createShadows({ viewer, env, getCasters: () => [store.group, people.group], walk, editorCam });
+const shadows = createShadows({ viewer, env, getCasters: () => [store.group, people.group] });
+// 화면 미리보기 효과 (등록 순서대로 덧그림): AO(구석 어둡게) → 일반 렌더 선
+const pipeline = createRenderPipeline(viewer);
+const ao = createAO(viewer, { ground: shadows.catcher, pipeline });
+const lineOverlay = createLineOverlay(viewer, pipeline);
 // 바닥·모델 윗면 찍기 (시작 위치 찍기, 사람 배치). 사람 모형은 밟을 수 없음
 const picker = createSurfacePicker({ viewer, getSurfaces: () => store.list() });
 
@@ -105,8 +110,8 @@ setupInspector(actions);
 setupCameraPanel({ walk, lens, picker, camera: viewer.camera });
 setupPeoplePanel({ people, picker, selection, camera: viewer.camera, poseMode });
 setupToolbar({ gizmo, env, people });
-setupCutPanel({ viewer, frame, people, lineOverlay, shadows });
-setupShadowPanel({ shadows });
+setupCutPanel({ viewer, frame, people, lineOverlay, shadows, ao });
+setupShadowPanel({ shadows, ao });
 setupHelpLine({ walk, picker, poseMode, selection });
 setupLayerPanel({ store, selection });
 setupFileInput(viewport, importFiles);
@@ -188,4 +193,4 @@ function nextFrame() {
 }
 
 // 개발 중 브라우저 콘솔에서 확인용 (예: app.store.list())
-if (import.meta.env.DEV) window.app = { viewer, store, selection, people, poseMode, gizmo, editorCam, lens, walk, picker, frame, lineOverlay, shadows, events: { on, emit } };
+if (import.meta.env.DEV) window.app = { viewer, store, selection, people, poseMode, gizmo, editorCam, lens, walk, picker, frame, lineOverlay, shadows, ao, events: { on, emit } };

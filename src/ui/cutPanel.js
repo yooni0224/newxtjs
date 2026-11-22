@@ -5,7 +5,7 @@ import { renderCut, downloadPng, exportSize, MAX_EXPORT_WIDTH } from '../export/
 import { bindNumberField, showNumber } from './numberField.js';
 import { toast } from './toast.js';
 
-export function setupCutPanel({ viewer, frame, people, lineOverlay, shadows }) {
+export function setupCutPanel({ viewer, frame, people, lineOverlay, shadows, ao }) {
   const $ = (id) => document.getElementById(id);
 
   // ---------- 컷 프레임 ----------
@@ -113,6 +113,7 @@ export function setupCutPanel({ viewer, frame, people, lineOverlay, shadows }) {
         lineArt: { width: parseFloat(lineWidth.value), crease: parseFloat(crease.value) },
         renderLines: lineOverlay.getSettings(),
         shadows,
+        ao,
         hide: $('chk-export-people').checked ? [] : [people.group],
       });
       const s = frame.getState();
