@@ -32,6 +32,9 @@ export function createModelStore(scene) {
     object.userData.modelContent = true; // 불러온 내용 (그룹 편집할 때 root 대신 들어가는 곳)
     root.add(object);
     prepareFastRaycast(object);
+    object.traverse((o) => {
+      if (o.isMesh) o.castShadow = o.receiveShadow = true; // 그림자 드리우고 받기 (src/render/shadows.js)
+    });
 
     // 기준점을 바닥 한가운데로: 모델을 옮겨서 바닥 중앙이 root 원점에 오게 함
     const box = new THREE.Box3().setFromObject(object, true);

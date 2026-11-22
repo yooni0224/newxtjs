@@ -5,7 +5,7 @@ import { renderCut, downloadPng, exportSize, MAX_EXPORT_WIDTH } from '../export/
 import { bindNumberField, showNumber } from './numberField.js';
 import { toast } from './toast.js';
 
-export function setupCutPanel({ viewer, frame, people, lineOverlay }) {
+export function setupCutPanel({ viewer, frame, people, lineOverlay, shadows }) {
   const $ = (id) => document.getElementById(id);
 
   // ---------- 컷 프레임 ----------
@@ -77,6 +77,7 @@ export function setupCutPanel({ viewer, frame, people, lineOverlay }) {
 
     for (const btn of modeButtons) btn.classList.toggle('active', btn.dataset.exportMode === mode);
     $('line-options').hidden = mode !== 'line';
+    $('shadow-export-hint').hidden = mode !== 'shadow';
     $('line-width-value').textContent = `${lineWidth.value}px`;
     $('crease-angle-value').textContent = `${crease.value}°`;
 
@@ -111,12 +112,14 @@ export function setupCutPanel({ viewer, frame, people, lineOverlay }) {
         mode,
         lineArt: { width: parseFloat(lineWidth.value), crease: parseFloat(crease.value) },
         renderLines: lineOverlay.getSettings(),
+        shadows,
         hide: $('chk-export-people').checked ? [] : [people.group],
       });
       const s = frame.getState();
       const ratio = s.enabled ? `${s.ratioW}x${s.ratioH}` : 'full';
       // 파일 이름은 영문으로 (브라우저에 따라 한글 이름이 무시되는 경우가 있어서)
-      await downloadPng(image, `cut_${ratio}_${mode === 'line' ? 'lineart' : 'render'}_${timestamp()}.png`);
+      const kind = { normal: 'render', line: 'lineart', shadow: 'shadow' }[mode];
+      await downloadPng(image, `cut_${ratio}_${kind}_${timestamp()}.png`);
       toast(`내보냄: ${image.width} × ${image.height} px`);
     } catch (err) {
       console.error(err);

@@ -163,6 +163,40 @@
           </div>
         </details>
 
+        <!-- 그림자 (src/ui/shadowPanel.js, src/render/shadows.js) -->
+        <details class="sec" open>
+          <summary>그림자</summary>
+          <label class="check"><input id="chk-shadows" type="checkbox" /> 그림자 켜기</label>
+          <label class="field">
+            해 방위
+            <input id="sun-azimuth" type="range" min="0" max="360" step="1" value="145" />
+            <span id="sun-azimuth-value" class="value"></span>
+          </label>
+          <label class="field">
+            해 높이
+            <input id="sun-elevation" type="range" min="0" max="90" step="1" value="50" />
+            <span id="sun-elevation-value" class="value"></span>
+          </label>
+          <p class="hint">방위 0° 북(-Z) · 90° 동(+X) · 180° 남 · 270° 서. 높이 0° 지평선 ~ 90° 머리 위.</p>
+          <label class="field">
+            진하기
+            <input id="shadow-darkness" type="range" min="0" max="100" step="1" value="70" />
+            <span id="shadow-darkness-value" class="value"></span>
+          </label>
+          <label class="field">
+            부드러움
+            <input id="shadow-softness" type="range" min="0" max="100" step="1" value="30" />
+            <span id="shadow-softness-value" class="value"></span>
+          </label>
+          <h3>품질</h3>
+          <div class="btn-row">
+            <button data-shadow-quality="low">낮음</button>
+            <button data-shadow-quality="medium">중간</button>
+            <button data-shadow-quality="high">높음</button>
+          </div>
+          <p id="shadow-quality-hint" class="hint"></p>
+        </details>
+
         <!-- 컷 프레임 (src/ui/cutPanel.js, src/cut/cutFrame.js) -->
         <!-- 비율 버튼 값을 바꾸려면 data-ratio="가로:세로" 만 고치면 됨 -->
         <details class="sec" open>
@@ -196,7 +230,9 @@
           <div class="btn-row">
             <button data-export-mode="normal">일반 렌더</button>
             <button data-export-mode="line">선화</button>
+            <button data-export-mode="shadow">그림자만</button>
           </div>
+          <p id="shadow-export-hint" class="hint" hidden>흰 바탕에 그림자만 회색으로 — 곱하기 레이어로 겹쳐 쓰세요. 회색 농도 = 그림자 진하기. 그림자를 꺼 두어도 계산합니다.</p>
           <!-- 일반 렌더 선 (src/render/lineOverlay.js) -->
           <div id="render-line-options" hidden>
             <label class="check"><input id="chk-render-lines" type="checkbox" /> 외곽선·모서리선 그리기</label>

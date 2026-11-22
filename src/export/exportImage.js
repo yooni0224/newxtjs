@@ -1,9 +1,12 @@
 // 컷 프레임 안쪽을 PNG 로 내보내기.
 //   일반 렌더: 화면에 보이는 그대로 (그리드·핸들·표시는 빼고) + 켜 두었으면 외곽선·모서리선
 //   선화: 흰 면 + 검은 선, 배경 투명
+//   그림자만: 흰 바탕에 그림자만 회색 (곱하기 레이어용, src/export/shadowOnly.js)
 // 선 찾기는 src/render/edgeLines.js
+// 숨긴 것(visible 꺼짐: 레이어 패널의 눈, 사람 제외 등)은 어느 모드에도 나오지 않음.
 import * as THREE from 'three';
 import { renderEdgeImage } from '../render/edgeLines.js';
+import { renderShadowOnly } from './shadowOnly.js';
 
 export const MAX_EXPORT_WIDTH = 8000;
 
@@ -25,19 +28,21 @@ export function renderLineWidth(screenWidth, rect, outW) {
  * @param viewer       core/viewer.js
  * @param rect         컷 프레임 (3D 화면 안의 px)
  * @param width        결과 가로 픽셀
- * @param mode         'normal' | 'line'
+ * @param mode         'normal' | 'line' | 'shadow'
  * @param lineArt      선화 설정 { width: 결과 px, crease: 도 }
  * @param renderLines  일반 렌더 선 설정 { enabled, width: 화면 px, crease: 도 } (src/render/lineOverlay.js)
+ * @param shadows      src/render/shadows.js ('그림자만' 에 필요)
  * @param hide         함께 숨길 것들 (예: 사람 모형 그룹)
  * @returns {HTMLCanvasElement}
  */
-export function renderCut({ viewer, rect, width, mode, lineArt, renderLines, hide = [] }) {
+export function renderCut({ viewer, rect, width, mode, lineArt, renderLines, shadows, hide = [] }) {
   const { renderer, camera, canvas } = viewer;
   const { w: outW, h: outH } = exportSize(rect, width);
 
   // 그리드·핸들·표시 등 숨기기
   const hidden = [...viewer.getHelpers(), ...hide].filter((o) => o.visible);
   setVisible(hidden, false);
+  renderer.shadowMap.needsUpdate = true; // 숨긴 것(사람 등)의 그림자도 빠지게 다시 계산
   const savedPixelRatio = renderer.getPixelRatio();
   const savedClear = renderer.getClearColor(new THREE.Color());
   const savedAlpha = renderer.getClearAlpha();
@@ -47,6 +52,13 @@ export function renderCut({ viewer, rect, width, mode, lineArt, renderLines, hid
   try {
     if (mode === 'line') {
       return renderEdges(viewer, outW, outH, { lineWidth: lineArt.width, creaseAngle: lineArt.crease, fill: true });
+    }
+    if (mode === 'shadow') {
+      return renderShadowOnly(viewer, outW, outH, {
+        shadows,
+        darkness: shadows.getSettings().darkness,
+        renderNormal: (w, h) => renderNormal(viewer, w, h),
+      });
     }
     const image = renderNormal(viewer, outW, outH);
     if (renderLines?.enabled) {
@@ -65,6 +77,7 @@ export function renderCut({ viewer, rect, width, mode, lineArt, renderLines, hid
     renderer.setPixelRatio(savedPixelRatio);
     viewer.resize(); // 화면 크기 되돌리기
     setVisible(hidden, true);
+    renderer.shadowMap.needsUpdate = true;
   }
 }
 

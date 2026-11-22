@@ -15,10 +15,11 @@ export function createEnvironment(viewer) {
   pmrem.dispose();
 
   // 하늘/땅 색이 다른 전체 조명 + 해처럼 한쪽에서 비추는 빛
+  // 해 방향·그림자는 src/render/shadows.js 가 정함
   const hemi = new THREE.HemisphereLight(0xffffff, 0x9096a0, 1.4);
   const sun = new THREE.DirectionalLight(0xffffff, 1.8);
   sun.position.set(6, 12, 8);
-  scene.add(hemi, sun);
+  scene.add(hemi, sun, sun.target);
 
   // 바닥 그리드: 1m 간격(연한 선) + 10m 간격(진한 선)
   const grid = new THREE.Group();
@@ -32,6 +33,8 @@ export function createEnvironment(viewer) {
 
   return {
     grid,
+    sun,
+    hemi,
     setGridVisible(visible) {
       grid.visible = visible;
     },

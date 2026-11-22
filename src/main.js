@@ -19,6 +19,7 @@ import { createPoseMode } from './people/poseMode.js';
 import { createLens } from './camera/lens.js';
 import { createCutFrame } from './cut/cutFrame.js';
 import { createLineOverlay } from './render/lineOverlay.js';
+import { createShadows } from './render/shadows.js';
 import { createWalkMode } from './camera/walkMode.js';
 import { setupToolbar } from './ui/toolbar.js';
 import { setupInspector } from './ui/inspector.js';
@@ -27,6 +28,7 @@ import { setupPeoplePanel } from './ui/peoplePanel.js';
 import { setupCutPanel } from './ui/cutPanel.js';
 import { setupHelpLine } from './ui/helpLine.js';
 import { setupLayerPanel } from './ui/layerPanel.js';
+import { setupShadowPanel } from './ui/shadowPanel.js';
 import { toast } from './ui/toast.js';
 
 // ---------- 화면 만들기 ----------
@@ -43,6 +45,8 @@ const frame = createCutFrame(viewer); // 컷 프레임 (화각·내보내기 기
 const lens = createLens(viewer, frame.getRect, 35); // 처음 화각 35mm
 const lineOverlay = createLineOverlay(viewer); // 일반 렌더 선 (화면 미리보기 + 설정)
 const walk = createWalkMode({ viewer, editorCam, selection, getSurfaces: () => store.list() });
+// 그림자: 모델·사람이 드리우고 받음, 해 방향·진하기·품질
+const shadows = createShadows({ viewer, env, getCasters: () => [store.group, people.group], walk, editorCam });
 // 바닥·모델 윗면 찍기 (시작 위치 찍기, 사람 배치). 사람 모형은 밟을 수 없음
 const picker = createSurfacePicker({ viewer, getSurfaces: () => store.list() });
 
@@ -101,7 +105,8 @@ setupInspector(actions);
 setupCameraPanel({ walk, lens, picker, camera: viewer.camera });
 setupPeoplePanel({ people, picker, selection, camera: viewer.camera, poseMode });
 setupToolbar({ gizmo, env, people });
-setupCutPanel({ viewer, frame, people, lineOverlay });
+setupCutPanel({ viewer, frame, people, lineOverlay, shadows });
+setupShadowPanel({ shadows });
 setupHelpLine({ walk, picker, poseMode, selection });
 setupLayerPanel({ store, selection });
 setupFileInput(viewport, importFiles);
@@ -183,4 +188,4 @@ function nextFrame() {
 }
 
 // 개발 중 브라우저 콘솔에서 확인용 (예: app.store.list())
-if (import.meta.env.DEV) window.app = { viewer, store, selection, people, poseMode, gizmo, editorCam, lens, walk, picker, frame, lineOverlay, events: { on, emit } };
+if (import.meta.env.DEV) window.app = { viewer, store, selection, people, poseMode, gizmo, editorCam, lens, walk, picker, frame, lineOverlay, shadows, events: { on, emit } };
