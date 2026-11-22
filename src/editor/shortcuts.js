@@ -5,7 +5,7 @@ import { on } from '../core/events.js';
 import { isTyping } from '../core/keyboard.js';
 
 /**
- * @param actions { setMode(mode), duplicate(), remove(), focus(), deselect() }
+ * @param actions { setMode(mode), duplicate(), remove(), focus(), escape() }
  */
 export function setupShortcuts(actions) {
   let walking = false;
@@ -43,7 +43,7 @@ export function setupShortcuts(actions) {
         actions.remove();
         break;
       case 'Escape':
-        actions.deselect();
+        actions.escape(); // 한 단계씩 빠져나옴 (관절 → 포즈 모드 → 선택)
         break;
     }
   });

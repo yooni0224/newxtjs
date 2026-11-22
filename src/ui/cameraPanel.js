@@ -27,7 +27,6 @@ export function setupCameraPanel({ walk, lens, picker, camera }) {
     btnPick.disabled = walking;
     document.body.classList.toggle('walking', walking);
     hud.hidden = !walking;
-    showHelp(walking ? 'walk' : 'edit');
     updateHud();
   });
 
@@ -49,13 +48,7 @@ export function setupCameraPanel({ walk, lens, picker, camera }) {
     const picking = purpose === 'walk';
     btnPick.textContent = picking ? '위치 찍는 중… (Esc 취소)' : '시작 위치 찍기';
     btnPick.classList.toggle('active', picking);
-    showHelp(purpose ? 'pick' : walk.isActive() ? 'walk' : 'edit');
   });
-
-  /** 화면 아래 안내 줄: 'edit' | 'pick' | 'walk' */
-  function showHelp(which) {
-    for (const name of ['edit', 'pick', 'walk']) $(`help-${name}`).hidden = name !== which;
-  }
 
   // ---------- 지형 따라가기 ----------
   const chkTerrain = $('chk-terrain');

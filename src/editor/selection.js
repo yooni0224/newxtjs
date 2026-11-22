@@ -1,4 +1,6 @@
 // 클릭으로 모델 선택하기 + 선택한 모델에 노란 상자 표시.
+// 다른 기능이 클릭을 먼저 가로챌 수 있음 (addClickHandler, 예: 포즈 모드의 관절 고르기).
+// 더블클릭은 onDoubleClick 으로 알림 (예: 사람 → 포즈 모드).
 import * as THREE from 'three';
 import { emit } from '../core/events.js';
 
@@ -14,6 +16,8 @@ export function createSelection(viewer, gizmo, getTargets) {
   let selected = null;
   let down = null;
   let enabled = true; // 1인칭 모드 동안에는 false
+  const clickHandlers = []; // (x, y) => true 면 그 기능이 클릭을 처리한 것
+  const doubleClickHandlers = [];
 
   const outline = new THREE.BoxHelper(undefined, 0xffc400);
   outline.material.depthTest = false; // 벽 뒤에 있어도 보이게
@@ -36,7 +40,12 @@ export function createSelection(viewer, gizmo, getTargets) {
     const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
     down = null;
     if (moved > CLICK_TOLERANCE) return;
+    for (const fn of clickHandlers) if (fn(e.clientX, e.clientY)) return;
     select(pick(e.clientX, e.clientY));
+  });
+  canvas.addEventListener('dblclick', (e) => {
+    if (!enabled || e.button !== 0) return;
+    for (const fn of doubleClickHandlers) fn(selected, e);
   });
 
   function pick(x, y) {
@@ -62,6 +71,8 @@ export function createSelection(viewer, gizmo, getTargets) {
   return {
     select,
     getSelected: () => selected,
+    addClickHandler: (fn) => clickHandlers.push(fn),
+    onDoubleClick: (fn) => doubleClickHandlers.push(fn),
     setEnabled(value) {
       enabled = value;
       if (!value) select(null);

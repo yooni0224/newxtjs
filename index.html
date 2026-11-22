@@ -22,6 +22,7 @@
         <div id="view-help">
           <span id="help-edit">왼쪽 드래그: 회전 · 오른쪽 드래그: 이동 · 휠: 확대 · Esc: 선택 해제 &nbsp;|&nbsp; 격자 1칸 = 1m</span>
           <span id="help-pick" hidden>바닥이나 모델 윗면을 클릭: 그 자리에 세우기 · 누른 채 드래그: 바라볼 방향 · Esc: 취소</span>
+          <span id="help-pose" hidden>포즈 모드 · 관절 점(또는 몸 부위) 클릭: 관절 고르기 · 핸들로 돌리기 · Esc: 관절 해제 / 포즈 모드 끝</span>
           <span id="help-walk" hidden>드래그: 고개 돌리기 · W A S D: 이동 · Shift: 빠르게 · Q / E: 낮게 / 높게 · Esc: 나가기</span>
         </div>
         <div id="toasts"></div>
@@ -95,6 +96,25 @@
             <input id="person-height" type="number" step="0.05" min="0.3" max="3" />
             <span>m</span>
           </label>
+
+          <!-- 포즈 (src/people/poseMode.js, src/people/pose.js) -->
+          <!-- 프리셋 각도는 src/people/pose.js 의 POSE_PRESETS 에서 고침 -->
+          <h3>포즈 <span id="pose-target" class="dim"></span></h3>
+          <button id="btn-pose-mode" class="wide">포즈 모드 (관절 돌리기)</button>
+          <p id="pose-hint" class="hint">사람을 고른 뒤 누르거나, 사람을 더블클릭하세요.</p>
+          <div id="pose-presets" class="btn-grid three">
+            <button data-pose="stand">서기</button>
+            <button data-pose="walk">걷기</button>
+            <button data-pose="run">달리기</button>
+            <button data-pose="sitChair">의자에<br />앉기</button>
+            <button data-pose="sitFloor">바닥에<br />앉기</button>
+            <button data-pose="armsCrossed">팔짱</button>
+          </div>
+          <div class="btn-row">
+            <button id="btn-pose-reset">초기화</button>
+            <button id="btn-pose-copy">포즈 복사</button>
+            <button id="btn-pose-paste">붙여넣기</button>
+          </div>
         </details>
 
         <!-- 편집 핸들 (src/ui/toolbar.js, src/editor/gizmo.js) -->

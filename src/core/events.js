@@ -9,6 +9,9 @@
 //   'gizmo-mode-changed'       핸들 모드가 바뀜          값: 'translate' | 'rotate' | 'scale'
 //   'people-changed'           사람 추가/삭제/키 변경, 새로 놓을 키 변경  값: 없음
 //   'people-visibility-changed' 사람 모형 보이기 켜짐/꺼짐  값: true | false
+//   'pose-mode-changed'        포즈 모드 들어감/나옴      값: 사람 root 또는 null
+//   'pose-joint-changed'       포즈 모드에서 고른 관절 바뀜  값: 관절 그룹 또는 null
+//   'pose-changed'             사람 포즈가 바뀜 (관절 돌리기·프리셋·붙여넣기)  값: 사람 root
 //   'walk-mode-changed'        1인칭 모드 들어감/나옴    값: true | false
 //   'walk-view-changed'        1인칭 시점 움직임         값: 없음
 //   'terrain-follow-changed'   지형 따라가기 켜짐/꺼짐    값: true | false

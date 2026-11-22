@@ -23,7 +23,7 @@ export function setupInspector({ duplicate, remove, focus, setHeight }) {
     const isHuman = current.userData.kind === 'human';
     const size = measure(current, precise);
     nameEl.textContent = current.name;
-    showNumber(heightInput, fmt(size.y));
+    showNumber(heightInput, fmt(isHuman ? current.userData.height : size.y)); // 사람은 앉아 있어도 '키'
     $('insp-height-label').textContent = isHuman ? '키' : '높이';
     $('insp-height-hint').textContent = isHuman
       ? '숫자를 넣고 Enter → 키 바꾸기 (몸 비율도 맞춰 바뀜)'
@@ -41,6 +41,9 @@ export function setupInspector({ duplicate, remove, focus, setHeight }) {
   });
   on('people-changed', () => {
     if (current?.userData.kind === 'human') refresh();
+  });
+  on('pose-changed', (person) => {
+    if (person === current) refresh(false);
   });
 
   bindNumberField(heightInput, (meters) => {

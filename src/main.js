@@ -2,7 +2,7 @@
 // 기능별 코드는 각 파일에 있음 → PLAN.md 의 '파일 구조' 참고.
 import * as THREE from 'three';
 
-import { on } from './core/events.js';
+import { on, emit } from './core/events.js';
 import { createViewer } from './core/viewer.js';
 import { createEnvironment } from './core/environment.js';
 import { createEditorCamera } from './core/editorCamera.js';
@@ -15,6 +15,7 @@ import { createSelection } from './editor/selection.js';
 import { setupShortcuts } from './editor/shortcuts.js';
 import { createSurfacePicker } from './editor/surfacePicker.js';
 import { createPeople } from './people/people.js';
+import { createPoseMode } from './people/poseMode.js';
 import { createLens } from './camera/lens.js';
 import { createCutFrame } from './cut/cutFrame.js';
 import { createLineOverlay } from './render/lineOverlay.js';
@@ -24,6 +25,7 @@ import { setupInspector } from './ui/inspector.js';
 import { setupCameraPanel } from './ui/cameraPanel.js';
 import { setupPeoplePanel } from './ui/peoplePanel.js';
 import { setupCutPanel } from './ui/cutPanel.js';
+import { setupHelpLine } from './ui/helpLine.js';
 import { toast } from './ui/toast.js';
 
 // ---------- 화면 만들기 ----------
@@ -35,6 +37,7 @@ const store = createModelStore(viewer.scene);
 const people = createPeople(viewer.scene);
 const gizmo = createGizmo(viewer, editorCam.controls); // selection 보다 먼저 만들어야 함
 const selection = createSelection(viewer, gizmo, () => [...store.list(), ...people.list()]);
+const poseMode = createPoseMode({ viewer, gizmo, selection, people }); // 사람 관절 돌리기
 const frame = createCutFrame(viewer); // 컷 프레임 (화각·내보내기 기준)
 const lens = createLens(viewer, frame.getRect, 35); // 처음 화각 35mm
 const lineOverlay = createLineOverlay(viewer); // 일반 렌더 선 (화면 미리보기 + 설정)
@@ -54,7 +57,7 @@ const actions = {
 
   remove() {
     const sel = selection.getSelected();
-    if (!sel) return;
+    if (!sel || poseMode.getJoint()) return; // 관절을 고른 동안에는 사람을 지우지 않음
     selection.select(null);
     if (sel.userData.kind === 'human') people.remove(sel);
     else store.remove(sel);
@@ -73,15 +76,25 @@ const actions = {
     else if (store.list().length) editorCam.focusOn(store.list());
   },
 
-  deselect: () => selection.select(null),
+  /** Esc: 관절 해제 → 포즈 모드 끝 → 선택 해제 순서로 한 단계씩 */
+  escape() {
+    if (poseMode.escape()) return;
+    selection.select(null);
+  },
 };
+
+// 더블클릭: 사람 → 포즈 모드
+selection.onDoubleClick((sel) => {
+  if (sel?.userData.kind === 'human') poseMode.enter(sel);
+});
 
 setupShortcuts(actions);
 setupInspector(actions);
 setupCameraPanel({ walk, lens, picker, camera: viewer.camera });
-setupPeoplePanel({ people, picker, selection, camera: viewer.camera });
+setupPeoplePanel({ people, picker, selection, camera: viewer.camera, poseMode });
 setupToolbar({ gizmo, env, people });
 setupCutPanel({ viewer, frame, people, lineOverlay });
+setupHelpLine({ walk, picker, poseMode });
 setupFileInput(viewport, importFiles);
 
 // 사람 모형을 숨기면 선택도 해제
@@ -161,4 +174,4 @@ function nextFrame() {
 }
 
 // 개발 중 브라우저 콘솔에서 확인용 (예: app.store.list())
-if (import.meta.env.DEV) window.app = { viewer, store, selection, people, gizmo, editorCam, lens, walk, picker, frame, lineOverlay };
+if (import.meta.env.DEV) window.app = { viewer, store, selection, people, poseMode, gizmo, editorCam, lens, walk, picker, frame, lineOverlay, events: { on, emit } };

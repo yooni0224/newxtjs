@@ -25,12 +25,29 @@ export function createGizmo(viewer, orbitControls) {
     emit('object-transformed', { object: tc.object, final: false });
   });
 
-  /** 사람 모형은 크기 조절 불가, 회전은 세로축만 */
+  /**
+   * 사람 모형은 크기 조절 불가, 회전은 세로축만.
+   * 관절(포즈 모드)은 회전만, 관절 자기 방향 기준 축, 돌릴 수 있는 축만 보임 (무릎·팔꿈치는 앞뒤로만)
+   */
   function applyRules() {
-    const isHuman = tc.object?.userData.kind === 'human';
+    const userData = tc.object?.userData || {};
+    if (userData.kind === 'joint') {
+      tc.setMode('rotate');
+      tc.setSpace('local');
+      tc.setSize(0.6);
+      const { x, y, z } = userData.limits;
+      tc.showX = x[1] > x[0];
+      tc.showY = y[1] > y[0];
+      tc.showZ = z[1] > z[0];
+      return;
+    }
+    tc.setSpace('world');
+    tc.setSize(0.9);
+    const isHuman = userData.kind === 'human';
     tc.setMode(isHuman && mode === 'scale' ? 'translate' : mode);
     const limitRotation = isHuman && tc.mode === 'rotate';
     tc.showX = !limitRotation;
+    tc.showY = true;
     tc.showZ = !limitRotation;
   }
 
@@ -46,6 +63,7 @@ export function createGizmo(viewer, orbitControls) {
       emit('gizmo-mode-changed', mode);
     },
     getMode: () => mode,
+    getObject: () => tc.object ?? null,
     setSnap(on) {
       tc.setTranslationSnap(on ? SNAP_MOVE : null);
       tc.setRotationSnap(on ? SNAP_ROTATE : null);
