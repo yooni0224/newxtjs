@@ -89,7 +89,8 @@ export function createPoseMode({ viewer, gizmo, selection, people }) {
       return true;
     }
     const hit = viewer.rayFromScreen(x, y).intersectObject(person, true)[0];
-    const part = hit && findJoint(hit.object);
+    // 도형 마네킹은 부위가 관절의 자식, 뼈대 모델은 클릭한 곳의 뼈로 관절을 찾음
+    const part = hit && (findJoint(hit.object) || bodyOf(person)?.userData.jointForHit?.(hit));
     if (part) {
       selectJoint(part);
       return true;

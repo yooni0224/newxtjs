@@ -1,4 +1,6 @@
-// 관절로 움직이는 마네킹 만들기.
+// 관절로 움직이는 마네킹: 관절 목록·회전 범위(JOINTS)와 관절 그룹 만들기(buildJoints).
+// 보통은 뼈대가 들어 있는 사람 모델(src/people/rig.js)을 쓰고, 그 모델을 못 불러올 때만
+// 아래 buildMannequin(도형으로 만든 간단한 마네킹)을 씀.
 // 키에 따라 '몇 등신'인지 바뀜: 성인 7.5등신, 아이는 머리가 상대적으로 큼.
 // 발바닥 = 높이 0, 머리 꼭대기 = 키. 앞쪽은 +Z (발끝·코가 향하는 쪽), 사람의 왼쪽 = +X.
 //
@@ -47,8 +49,28 @@ function mirrorLimits({ x, y, z }) {
   return { x, y: [-y[1], -y[0]], z: [-z[1], -z[0]] };
 }
 
+/**
+ * 관절 그룹들을 계층대로 만들어 group 에 붙임. rest = { 관절 id: 기본 자세 위치(group 기준) }
+ * 관절의 기본 회전은 0 (축 = 사람 기준 앞뒤·좌우·위아래). 뼈대 모델(src/people/rig.js)도 같이 씀.
+ */
+export function buildJoints(group, rest) {
+  const joints = {};
+  for (const def of JOINTS) {
+    const joint = new THREE.Group();
+    joint.name = def.name;
+    joint.rotation.order = 'XZY';
+    const parent = def.parent ? joints[def.parent] : group;
+    joint.position.copy(rest[def.id]).sub(def.parent ? rest[def.parent] : new THREE.Vector3());
+    joint.userData = { kind: 'joint', jointId: def.id, limits: def.limits, restPosition: joint.position.clone() };
+    parent.add(joint);
+    joints[def.id] = joint;
+  }
+  group.userData.joints = joints;
+  return joints;
+}
+
 /** 키(m) → 등신 (머리 몇 개 높이인지) */
-function headsTall(height) {
+export function headsTall(height) {
   return THREE.MathUtils.clamp(5 + ((height - 0.9) / 0.7) * 2.5, 5, 7.5);
 }
 
@@ -98,18 +120,7 @@ export function buildMannequin(height, bodyMat, jointMat) {
 
   const group = new THREE.Group();
   group.name = '마네킹';
-  const joints = {};
-  for (const def of JOINTS) {
-    const joint = new THREE.Group();
-    joint.name = def.name;
-    joint.rotation.order = 'XZY';
-    const parent = def.parent ? joints[def.parent] : group;
-    joint.position.copy(rest[def.id]).sub(def.parent ? rest[def.parent] : new THREE.Vector3());
-    joint.userData = { kind: 'joint', jointId: def.id, limits: def.limits, restPosition: joint.position.clone() };
-    parent.add(joint);
-    joints[def.id] = joint;
-  }
-  group.userData.joints = joints;
+  const joints = buildJoints(group, rest);
 
   // ---------- 몸 부위: 위치는 마네킹 기준으로 적고, 붙일 관절 기준으로 옮겨서 붙임 ----------
   const put = (jointId, mesh) => {

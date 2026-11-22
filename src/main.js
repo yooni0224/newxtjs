@@ -126,6 +126,9 @@ setupLayerPanel({ store, selection });
 const projectPanel = setupProjectPanel({ project, store }); // 맨 마지막: 이 뒤로 생기는 변경부터 자동 저장
 setupFileInput(viewport, importFiles);
 
+// 사람 모델 파일을 못 불러오면 간단한 마네킹으로 대신함
+on('people-load-failed', (message) => toast(`사람 모델을 불러오지 못해 간단한 마네킹을 씁니다 — ${message}`, 'warn', 9000));
+
 // 사람 모형을 숨기면 선택도 해제
 on('people-visibility-changed', (visible) => {
   if (!visible && selection.getSelected()?.userData.kind === 'human') selection.select(null);

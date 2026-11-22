@@ -34,6 +34,7 @@ export function createProject(app) {
       bundles: store.usedBundles().map((b) => ({ id: b.id, files: b.files.map((f) => f.path) })),
       models: store.list().map(captureModel),
       people: people.list().map((p) => ({
+        body: p.userData.body,
         height: p.userData.height,
         position: p.position.toArray(),
         quaternion: p.quaternion.toArray(),
@@ -53,6 +54,7 @@ export function createProject(app) {
         peopleVisible: people.isVisible(),
         gridVisible: env.grid.visible,
         nextPersonHeight: people.getNextHeight(),
+        nextPersonBody: people.getNextBody(),
       },
     };
   }
@@ -99,9 +101,10 @@ export function createProject(app) {
       }
     }
 
-    // 사람 (키·위치·방향·포즈)
+    // 사람 (체형·키·위치·방향·포즈). 사람 모델을 다 불러온 뒤에 (그래야 발 바닥 맞추기가 모델 기준)
+    await people.ready;
     for (const p of state.people || []) {
-      const person = people.add({ height: p.height, position: new THREE.Vector3().fromArray(p.position), pose: p.pose });
+      const person = people.add({ body: p.body, height: p.height, position: new THREE.Vector3().fromArray(p.position), pose: p.pose });
       person.quaternion.fromArray(p.quaternion);
     }
 
@@ -116,6 +119,7 @@ export function createProject(app) {
     if (s.eyeHeight) walk.setEyeHeight(s.eyeHeight);
     if (s.followTerrain !== undefined) walk.setFollowTerrain(s.followTerrain);
     if (s.nextPersonHeight) people.setNextHeight(s.nextPersonHeight);
+    if (s.nextPersonBody) people.setNextBody(s.nextPersonBody);
     if (s.gridVisible !== undefined) env.setGridVisible(s.gridVisible);
     if (s.peopleVisible !== undefined) people.setVisible(s.peopleVisible);
 

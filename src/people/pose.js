@@ -1,4 +1,5 @@
 // 포즈: 관절 각도 읽기/쓰기, 회전 범위 지키기, 발 바닥에 붙이기, 포즈 프리셋.
+// 관절 그룹을 돌린 뒤에는 syncBody 로 몸(뼈대 모델의 뼈)에 반영 — groundBody 가 해 줌.
 // 포즈 = { 관절 id: [x, y, z] (도) }. 없는 관절은 0 (차렷 자세).
 // 관절 목록·회전 범위는 src/people/mannequin.js 의 JOINTS.
 import * as THREE from 'three';
@@ -159,7 +160,7 @@ function clampWrapped(value, [min, max]) {
 export function groundBody(body) {
   const pelvis = body.userData.joints.pelvis;
   pelvis.position.copy(pelvis.userData.restPosition);
-  body.updateMatrixWorld(true);
+  syncBody(body);
   const toBody = new THREE.Matrix4().copy(body.matrixWorld).invert();
   const m = new THREE.Matrix4();
   const p = new THREE.Vector3();
@@ -169,11 +170,20 @@ export function groundBody(body) {
     if (!pos) return;
     m.multiplyMatrices(toBody, o.matrixWorld);
     for (let i = 0; i < pos.count; i++) {
-      const y = p.fromBufferAttribute(pos, i).applyMatrix4(m).y;
+      // 뼈대 모델은 포즈대로 휜 위치 (getVertexPosition)
+      if (o.isSkinnedMesh) o.getVertexPosition(i, p);
+      else p.fromBufferAttribute(pos, i);
+      const y = p.applyMatrix4(m).y;
       if (y < minY) minY = y;
     }
   });
   if (Number.isFinite(minY)) pelvis.position.y -= minY;
+  syncBody(body);
+}
+
+/** 관절 그룹의 지금 회전을 몸에 반영 (뼈대 모델이면 뼈를 돌림) + 위치 계산 갱신 */
+export function syncBody(body) {
+  body.userData.sync?.();
   body.updateMatrixWorld(true);
 }
 

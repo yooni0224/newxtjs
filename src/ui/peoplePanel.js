@@ -1,5 +1,5 @@
-// '사람' 칸: 사람 배치 버튼, 키 버튼/입력, 포즈(포즈 모드·프리셋·초기화·복사/붙여넣기).
-// 사람이 선택돼 있으면 키 버튼은 그 사람에게, 아니면 '새로 놓을 사람'에게 적용.
+// '사람' 칸: 사람 배치 버튼, 체형(남성·여성)·키 버튼/입력, 포즈(포즈 모드·프리셋·초기화·복사/붙여넣기).
+// 사람이 선택돼 있으면 체형·키 버튼은 그 사람에게, 아니면 '새로 놓을 사람'에게 적용.
 // 포즈 버튼은 선택한 사람에게만.
 import { on } from '../core/events.js';
 import { cameraYaw } from '../camera/walkMode.js';
@@ -42,15 +42,24 @@ export function setupPeoplePanel({ people, picker, selection, camera, poseMode }
     btnPlace.classList.toggle('active', placing);
   });
 
-  // ---------- 키 ----------
-  function applyHeight(meters) {
+  // ---------- 체형 · 키 ----------
+  const bodyButtons = [...document.querySelectorAll('[data-body]')];
+  /** 선택한 사람(없으면 새로 놓을 사람)의 키·체형 바꾸기. body 는 없으면 그대로 */
+  function applyHeight(meters, body) {
     const person = selectedPerson();
-    if (person) people.setHeight(person, meters);
+    if (person) people.setHeight(person, meters, body);
+    if (body) people.setNextBody(body);
     people.setNextHeight(meters);
   }
-  for (const btn of heightButtons) {
-    btn.addEventListener('click', () => applyHeight(parseFloat(btn.dataset.personHeight)));
+  function applyBody(body) {
+    const person = selectedPerson();
+    if (person) people.setBody(person, body);
+    people.setNextBody(body);
   }
+  for (const btn of heightButtons) {
+    btn.addEventListener('click', () => applyHeight(parseFloat(btn.dataset.personHeight), btn.dataset.personBody));
+  }
+  for (const btn of bodyButtons) btn.addEventListener('click', () => applyBody(btn.dataset.body));
   bindNumberField(heightInput, (meters) => {
     if (meters) applyHeight(meters);
     else refresh();
@@ -59,11 +68,14 @@ export function setupPeoplePanel({ people, picker, selection, camera, poseMode }
   function refresh() {
     const person = selectedPerson();
     const height = person ? person.userData.height : people.getNextHeight();
+    const body = person ? person.userData.body : people.getNextBody();
     targetLabel.textContent = person ? '(선택한 사람)' : '(새로 놓을 사람)';
     showNumber(heightInput, height.toFixed(2));
     for (const btn of heightButtons) {
-      btn.classList.toggle('active', Math.abs(parseFloat(btn.dataset.personHeight) - height) < 0.005);
+      const sameBody = !btn.dataset.personBody || btn.dataset.personBody === body;
+      btn.classList.toggle('active', sameBody && Math.abs(parseFloat(btn.dataset.personHeight) - height) < 0.005);
     }
+    for (const btn of bodyButtons) btn.classList.toggle('active', btn.dataset.body === body);
   }
   on('selection-changed', refresh);
   on('people-changed', refresh);

@@ -111,16 +111,20 @@
         </details>
 
         <!-- 사람 (src/ui/peoplePanel.js, src/people/) -->
-        <!-- 키 버튼 값을 바꾸려면 data-person-height(m) 만 고치면 됨 -->
+        <!-- 키 버튼 값을 바꾸려면 data-person-height(m) 만 고치면 됨. data-person-body 가 있으면 체형도 같이 바뀜 -->
         <details class="sec" open>
           <summary>사람</summary>
           <button id="btn-place-person" class="wide">사람 배치</button>
           <p class="hint">바닥·모델 윗면 클릭 → 그 위에 세우기 (누른 채 드래그 → 바라볼 방향)</p>
-          <h3>키 <span id="person-height-target" class="dim">(새로 놓을 사람)</span></h3>
+          <h3>체형 · 키 <span id="person-height-target" class="dim">(새로 놓을 사람)</span></h3>
+          <div class="btn-row">
+            <button data-body="male">남성</button>
+            <button data-body="female">여성</button>
+          </div>
           <div class="btn-row">
             <button data-person-height="1.2">아이<br />1.2m</button>
-            <button data-person-height="1.6">성인 여성<br />1.6m</button>
-            <button data-person-height="1.75">성인 남성<br />1.75m</button>
+            <button data-person-height="1.6" data-person-body="female">성인 여성<br />1.6m</button>
+            <button data-person-height="1.75" data-person-body="male">성인 남성<br />1.75m</button>
           </div>
           <label class="field">
             직접 입력
