@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { emit } from '../core/events.js';
 import { measure } from './size.js';
+import { prepareFastRaycast } from '../core/fastRaycast.js';
 
 export function createModelStore(scene) {
   const group = new THREE.Group();
@@ -25,6 +26,7 @@ export function createModelStore(scene) {
     root.name = name;
     root.userData = { kind: 'model', selectable: true, sourceId };
     root.add(object);
+    prepareFastRaycast(object);
 
     // 기준점을 바닥 한가운데로: 모델을 옮겨서 바닥 중앙이 root 원점에 오게 함
     const box = new THREE.Box3().setFromObject(object, true);

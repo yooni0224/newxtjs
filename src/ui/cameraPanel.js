@@ -57,6 +57,14 @@ export function setupCameraPanel({ walk, lens, picker, camera }) {
     for (const name of ['edit', 'pick', 'walk']) $(`help-${name}`).hidden = name !== which;
   }
 
+  // ---------- 지형 따라가기 ----------
+  const chkTerrain = $('chk-terrain');
+  chkTerrain.checked = walk.getFollowTerrain();
+  chkTerrain.addEventListener('change', () => walk.setFollowTerrain(chkTerrain.checked));
+  on('terrain-follow-changed', (value) => {
+    chkTerrain.checked = value;
+  });
+
   // ---------- 눈높이 ----------
   for (const btn of eyeButtons) {
     btn.addEventListener('click', () => walk.setEyeHeight(parseFloat(btn.dataset.eye)));

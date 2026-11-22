@@ -33,7 +33,7 @@ const people = createPeople(viewer.scene);
 const gizmo = createGizmo(viewer, editorCam.controls); // selection 보다 먼저 만들어야 함
 const selection = createSelection(viewer, gizmo, () => [...store.list(), ...people.list()]);
 const lens = createLens(viewer, 35); // 처음 화각 35mm
-const walk = createWalkMode({ viewer, editorCam, selection });
+const walk = createWalkMode({ viewer, editorCam, selection, getSurfaces: () => store.list() });
 // 바닥·모델 윗면 찍기 (시작 위치 찍기, 사람 배치). 사람 모형은 밟을 수 없음
 const picker = createSurfacePicker({ viewer, getSurfaces: () => store.list() });
 

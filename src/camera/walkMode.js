@@ -3,16 +3,20 @@
 //   Q / E: 눈높이 낮추기 / 높이기 · Esc: 나가기
 // 들어가기: enter() = 편집 카메라 자리(x, z)에서 보던 방향 그대로(수평)
 //          enterAt() = 찍은 표면 위에서 (src/ui/cameraPanel.js '시작 위치 찍기')
-// 카메라 높이 = 발 높이(서 있는 표면) + 눈높이. 걸어도 발 높이는 그대로, 벽은 통과(촬영용 카메라처럼).
+// 카메라 높이 = 발 높이(서 있는 표면) + 눈높이. Q/E 는 발밑 기준 눈높이를 바꿈.
+// 지형 따라가기 켜짐: 계단·경사로를 오르내리고(0.4m 까지), 더 높은 건 벽처럼 막힘 (src/camera/terrain.js)
+// 지형 따라가기 꺼짐: 발 높이 고정, 벽 통과 (촬영용 카메라처럼)
 // 나오면 편집 카메라는 들어가기 전 자리로 돌아감.
 import * as THREE from 'three';
 import { emit } from '../core/events.js';
 import { isTyping } from '../core/keyboard.js';
+import { createTerrain } from './terrain.js';
 
 const WALK_SPEED = 2; // 걷는 속도 m/초
 const RUN_MULTIPLIER = 3; // Shift 누르면 몇 배
 const LIFT_SPEED = 0.5; // Q/E 높이 바꾸는 속도 m/초
 const LOOK_SENSITIVITY = 0.004; // 드래그 1픽셀당 회전량 (화각이 좁을수록 자동으로 느려짐)
+const HEIGHT_SMOOTHING = 10; // 발 높이가 바뀔 때 따라가는 빠르기 (클수록 빨리)
 export const MIN_EYE = 0.05;
 export const MAX_EYE = 1000;
 
@@ -32,15 +36,19 @@ export function cameraYaw(camera) {
 }
 
 /**
- * @param viewer      core/viewer.js
- * @param editorCam   core/editorCamera.js (1인칭 동안 꺼 둠)
- * @param selection   editor/selection.js (1인칭 동안 꺼 둠)
+ * @param viewer       core/viewer.js
+ * @param editorCam    core/editorCamera.js (1인칭 동안 꺼 둠)
+ * @param selection    editor/selection.js (1인칭 동안 꺼 둠)
+ * @param getSurfaces  밟을 수 있는 물체 목록 (모델들, 사람 모형 제외)
  */
-export function createWalkMode({ viewer, editorCam, selection }) {
+export function createWalkMode({ viewer, editorCam, selection, getSurfaces }) {
   const { camera, canvas, onFrame } = viewer;
+  const terrain = createTerrain(getSurfaces);
   let active = false;
+  let followTerrain = true; // 지형 따라가기
   let eyeHeight = 1.6;
   let groundY = 0; // 서 있는 표면 높이(발 높이)
+  let shownGroundY = 0; // 화면에 쓰는 발 높이 (groundY 를 부드럽게 따라감)
   let yaw = 0; // 좌우 고개 (라디안)
   let pitch = 0; // 위아래 고개 (라디안, 0 = 수평)
   let editorPose = null; // 들어가기 전 편집 카메라 자리
@@ -48,7 +56,7 @@ export function createWalkMode({ viewer, editorCam, selection }) {
   const euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
   function applyView() {
-    camera.position.y = groundY + eyeHeight;
+    camera.position.y = shownGroundY + eyeHeight;
     camera.quaternion.setFromEuler(euler.set(pitch, yaw, 0));
   }
 
@@ -59,8 +67,9 @@ export function createWalkMode({ viewer, editorCam, selection }) {
   // ---------- 들어가기 / 나가기 ----------
   /** 편집 카메라가 있는 자리(x, z) 바닥에 서서, 보던 방향을 수평으로 이어받음 */
   function enter() {
-    const dir = camera.getWorldDirection(new THREE.Vector3());
-    enterAt({ x: camera.position.x, z: camera.position.z, groundY: 0, yaw: yawFromDirection(dir) });
+    const { x, z } = camera.position;
+    const ground = followTerrain ? terrain.groundAt(x, z, 0) : 0;
+    enterAt({ x, z, groundY: ground, yaw: cameraYaw(camera) });
   }
 
   /** 정해진 자리에서 시작. groundY = 서 있을 표면 높이, yaw = 바라볼 방향 */
@@ -75,6 +84,7 @@ export function createWalkMode({ viewer, editorCam, selection }) {
     editorCam.setActive(false);
     camera.position.set(x, 0, z);
     groundY = ground;
+    shownGroundY = ground;
     yaw = startYaw;
     pitch = 0;
     active = true;
@@ -139,7 +149,9 @@ export function createWalkMode({ viewer, editorCam, selection }) {
     const now = performance.now();
     const dt = Math.min((now - last) / 1000, 0.1);
     last = now;
-    if (!active || keys.size === 0) return;
+    if (!active) return;
+    smoothHeight(dt);
+    if (keys.size === 0) return;
 
     const fast = keys.has('ShiftLeft') || keys.has('ShiftRight') ? RUN_MULTIPLIER : 1;
     const axis = (plus, minus) =>
@@ -150,14 +162,37 @@ export function createWalkMode({ viewer, editorCam, selection }) {
     if (ahead || side) {
       const f = forward();
       const right = new THREE.Vector3(-f.z, 0, f.x);
-      const move = f.multiplyScalar(ahead).add(right.multiplyScalar(side)).normalize();
-      camera.position.addScaledVector(move, WALK_SPEED * fast * dt);
+      let move = f.multiplyScalar(ahead).add(right.multiplyScalar(side)).normalize();
+      move.multiplyScalar(WALK_SPEED * fast * dt);
+      if (followTerrain) {
+        move = terrain.limitMove(camera.position, groundY, eyeHeight, move); // 벽에 막힘
+        camera.position.add(move);
+        groundY = terrain.groundAt(camera.position.x, camera.position.z, groundY); // 계단·경사·낙하
+      } else {
+        camera.position.add(move);
+      }
       emit('walk-view-changed');
     }
 
     const lift = axis(['KeyE'], ['KeyQ']);
     if (lift) setEyeHeight(eyeHeight + lift * LIFT_SPEED * fast * dt);
   });
+
+  /** 발 높이가 바뀌면 카메라 높이를 부드럽게 따라가게 */
+  function smoothHeight(dt) {
+    if (shownGroundY === groundY) return;
+    const t = 1 - Math.exp(-HEIGHT_SMOOTHING * dt);
+    shownGroundY += (groundY - shownGroundY) * t;
+    if (Math.abs(groundY - shownGroundY) < 0.001) shownGroundY = groundY;
+    applyView();
+  }
+
+  // ---------- 지형 따라가기 켜기/끄기 ----------
+  function setFollowTerrain(value) {
+    followTerrain = value;
+    if (value && active) groundY = terrain.groundAt(camera.position.x, camera.position.z, groundY);
+    emit('terrain-follow-changed', value);
+  }
 
   // ---------- 눈높이 ----------
   function setEyeHeight(meters) {
@@ -174,6 +209,8 @@ export function createWalkMode({ viewer, editorCam, selection }) {
     isActive: () => active,
     getEyeHeight: () => eyeHeight,
     getGroundY: () => groundY,
+    getFollowTerrain: () => followTerrain,
+    setFollowTerrain,
     setEyeHeight,
     /** 고개를 수평으로 (세로선이 똑바로 서는 구도) */
     level() {
