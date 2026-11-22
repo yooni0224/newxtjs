@@ -19,6 +19,7 @@
         <div id="walk-hud" hidden><strong>1인칭</strong> <span id="hud-info"></span></div>
         <div id="view-help">
           <span id="help-edit">왼쪽 드래그: 회전 · 오른쪽 드래그: 이동 · 휠: 확대 · Esc: 선택 해제 &nbsp;|&nbsp; 격자 1칸 = 1m</span>
+          <span id="help-pick" hidden>바닥이나 모델 윗면을 클릭: 그 위에 서기 · 누른 채 드래그: 바라볼 방향 · Esc: 취소</span>
           <span id="help-walk" hidden>드래그: 고개 돌리기 · W A S D: 이동 · Shift: 빠르게 · Q / E: 낮게 / 높게 · Esc: 나가기</span>
         </div>
         <div id="toasts"></div>
@@ -41,6 +42,8 @@
         <section>
           <h2>인물 시점</h2>
           <button id="btn-walk" class="wide primary">1인칭 모드 시작</button>
+          <button id="btn-pick-start" class="wide">시작 위치 찍기</button>
+          <p class="hint">찍기: 바닥·모델 윗면 클릭 → 그 위에 서기 (누른 채 드래그 → 바라볼 방향)</p>
 
           <h3>눈높이</h3>
           <div class="btn-grid">

@@ -16,6 +16,7 @@ import { setupShortcuts } from './editor/shortcuts.js';
 import { createHumanRef } from './helpers/humanRef.js';
 import { createLens } from './camera/lens.js';
 import { createWalkMode } from './camera/walkMode.js';
+import { createStartPicker } from './camera/startPicker.js';
 import { setupToolbar } from './ui/toolbar.js';
 import { setupInspector } from './ui/inspector.js';
 import { setupCameraPanel } from './ui/cameraPanel.js';
@@ -31,7 +32,8 @@ const human = createHumanRef(viewer.scene);
 const gizmo = createGizmo(viewer, editorCam.controls); // selection 보다 먼저 만들어야 함
 const selection = createSelection(viewer, gizmo, () => [...store.list(), human.root]);
 const lens = createLens(viewer, 35); // 처음 화각 35mm
-const walk = createWalkMode({ viewer, editorCam, selection, getTargets: () => [...store.list(), human.root] });
+const walk = createWalkMode({ viewer, editorCam, selection });
+const picker = createStartPicker({ viewer, walk, getSurfaces: () => store.list() });
 
 // ---------- 편집 동작 ----------
 const actions = {
@@ -62,7 +64,7 @@ const actions = {
 
 setupShortcuts(actions);
 setupInspector(actions);
-setupCameraPanel({ walk, lens });
+setupCameraPanel({ walk, lens, picker });
 // 사람 모형을 처음 켤 때 세울 곳: 편집 시점이면 화면 중심, 1인칭이면 3m 앞
 setupToolbar({ gizmo, env, human, getHumanSpot: () => (walk.isActive() ? walk.pointAhead(3) : editorCam.controls.target) });
 setupFileInput(viewport, importFiles);
@@ -144,4 +146,4 @@ function nextFrame() {
 }
 
 // 개발 중 브라우저 콘솔에서 확인용 (예: app.store.list())
-if (import.meta.env.DEV) window.app = { viewer, store, selection, human, gizmo, editorCam, lens, walk };
+if (import.meta.env.DEV) window.app = { viewer, store, selection, human, gizmo, editorCam, lens, walk, picker };

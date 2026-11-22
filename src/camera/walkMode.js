@@ -1,7 +1,10 @@
 // 1인칭(인물 시점) 모드.
 //   드래그: 고개 돌리기 · W A S D (또는 방향키): 이동 · Shift: 빠르게
 //   Q / E: 눈높이 낮추기 / 높이기 · Esc: 나가기
-// 눈높이는 바닥(높이 0)에서 잰 값으로 고정. 벽 통과 가능(촬영용 카메라처럼).
+// 들어가기: enter() = 편집 카메라 자리(x, z)에서 보던 방향 그대로(수평)
+//          enterAt() = 찍은 표면 위에서 (src/camera/startPicker.js)
+// 카메라 높이 = 발 높이(서 있는 표면) + 눈높이. 걸어도 발 높이는 그대로, 벽은 통과(촬영용 카메라처럼).
+// 나오면 편집 카메라는 들어가기 전 자리로 돌아감.
 import * as THREE from 'three';
 import { emit } from '../core/events.js';
 import { isTyping } from '../core/keyboard.js';
@@ -18,23 +21,29 @@ const MOVE_KEYS = new Set([
   'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ShiftLeft', 'ShiftRight',
 ]);
 
+/** 바라보는 방향(벡터) → 좌우 고개 각도(라디안). 수평 성분만 씀 */
+export function yawFromDirection(dir) {
+  return Math.atan2(-dir.x, -dir.z);
+}
+
 /**
  * @param viewer      core/viewer.js
  * @param editorCam   core/editorCamera.js (1인칭 동안 꺼 둠)
  * @param selection   editor/selection.js (1인칭 동안 꺼 둠)
- * @param getTargets  모델 목록 (나갈 때 '보고 있던 물체'를 찾는 데 씀)
  */
-export function createWalkMode({ viewer, editorCam, selection, getTargets }) {
+export function createWalkMode({ viewer, editorCam, selection }) {
   const { camera, canvas, onFrame } = viewer;
   let active = false;
   let eyeHeight = 1.6;
+  let groundY = 0; // 서 있는 표면 높이(발 높이)
   let yaw = 0; // 좌우 고개 (라디안)
   let pitch = 0; // 위아래 고개 (라디안, 0 = 수평)
+  let editorPose = null; // 들어가기 전 편집 카메라 자리
   const keys = new Set();
   const euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
   function applyView() {
-    camera.position.y = eyeHeight;
+    camera.position.y = groundY + eyeHeight;
     camera.quaternion.setFromEuler(euler.set(pitch, yaw, 0));
   }
 
@@ -43,13 +52,25 @@ export function createWalkMode({ viewer, editorCam, selection, getTargets }) {
   }
 
   // ---------- 들어가기 / 나가기 ----------
+  /** 편집 카메라가 있는 자리(x, z) 바닥에 서서, 보던 방향을 수평으로 이어받음 */
   function enter() {
+    const dir = camera.getWorldDirection(new THREE.Vector3());
+    enterAt({ x: camera.position.x, z: camera.position.z, groundY: 0, yaw: yawFromDirection(dir) });
+  }
+
+  /** 정해진 자리에서 시작. groundY = 서 있을 표면 높이, yaw = 바라볼 방향 */
+  function enterAt({ x, z, groundY: ground = 0, yaw: startYaw }) {
     if (active) return;
+    editorPose = {
+      position: camera.position.clone(),
+      quaternion: camera.quaternion.clone(),
+      target: editorCam.controls.target.clone(),
+    };
     selection.setEnabled(false);
     editorCam.setActive(false);
-    // 지금 보던 자리 바닥에 서서, 보던 방향을 수평으로 바라봄
-    const dir = camera.getWorldDirection(new THREE.Vector3());
-    yaw = Math.atan2(-dir.x, -dir.z);
+    camera.position.set(x, 0, z);
+    groundY = ground;
+    yaw = startYaw;
     pitch = 0;
     active = true;
     applyView();
@@ -62,18 +83,12 @@ export function createWalkMode({ viewer, editorCam, selection, getTargets }) {
     active = false;
     keys.clear();
     canvas.style.cursor = '';
-    // 편집 시점은 지금 보고 있던 물체를 중심으로 이어서 돌 수 있게
-    editorCam.setActive(true, lookTarget());
+    // 편집 카메라를 들어가기 전 자리로 되돌림
+    camera.position.copy(editorPose.position);
+    camera.quaternion.copy(editorPose.quaternion);
+    editorCam.setActive(true, editorPose.target);
     selection.setEnabled(true);
     emit('walk-mode-changed', false);
-  }
-
-  /** 정면으로 보이는 물체 위치 (없으면 5m 앞) */
-  function lookTarget() {
-    const dir = camera.getWorldDirection(new THREE.Vector3());
-    const ray = new THREE.Raycaster(camera.position, dir, 0.3, 100);
-    const hit = ray.intersectObjects(getTargets().filter((o) => o.visible), true)[0];
-    return camera.position.clone().addScaledVector(dir, hit ? hit.distance : 5);
   }
 
   // ---------- 마우스 드래그: 고개 돌리기 ----------
@@ -149,9 +164,11 @@ export function createWalkMode({ viewer, editorCam, selection, getTargets }) {
 
   return {
     enter,
+    enterAt,
     exit,
     isActive: () => active,
     getEyeHeight: () => eyeHeight,
+    getGroundY: () => groundY,
     setEyeHeight,
     /** 고개를 수평으로 (세로선이 똑바로 서는 구도) */
     level() {
