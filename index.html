@@ -19,28 +19,28 @@
         <div id="walk-hud" hidden><strong>1인칭</strong> <span id="hud-info"></span></div>
         <div id="view-help">
           <span id="help-edit">왼쪽 드래그: 회전 · 오른쪽 드래그: 이동 · 휠: 확대 · Esc: 선택 해제 &nbsp;|&nbsp; 격자 1칸 = 1m</span>
-          <span id="help-pick" hidden>바닥이나 모델 윗면을 클릭: 그 위에 서기 · 누른 채 드래그: 바라볼 방향 · Esc: 취소</span>
+          <span id="help-pick" hidden>바닥이나 모델 윗면을 클릭: 그 자리에 세우기 · 누른 채 드래그: 바라볼 방향 · Esc: 취소</span>
           <span id="help-walk" hidden>드래그: 고개 돌리기 · W A S D: 이동 · Shift: 빠르게 · Q / E: 낮게 / 높게 · Esc: 나가기</span>
         </div>
         <div id="toasts"></div>
       </main>
 
-      <!-- 오른쪽 패널 -->
+      <!-- 오른쪽 패널. 칸 제목을 누르면 접고 펼 수 있음 -->
       <aside id="panel">
         <h1>웹툰 배경 3D</h1>
 
         <!-- 파일 (src/models/dropZone.js) -->
-        <section>
-          <h2>파일</h2>
+        <details class="sec" open>
+          <summary>파일</summary>
           <button id="btn-open" class="wide">모델 불러오기…</button>
           <input id="file-input" type="file" multiple accept=".glb,.gltf,.obj,.mtl,.bin,.zip,.png,.jpg,.jpeg,.webp" hidden />
           <p class="hint">GLTF·OBJ는 .bin/.mtl/텍스처를 함께 선택하거나 폴더째 끌어다 놓으세요.</p>
-        </section>
+        </details>
 
         <!-- 인물 시점 (src/ui/cameraPanel.js, src/camera/walkMode.js, src/camera/lens.js) -->
         <!-- 버튼을 늘리거나 값을 바꾸려면 data-eye(m) / data-focal(mm) 만 고치면 됨 -->
-        <section>
-          <h2>인물 시점</h2>
+        <details class="sec" open>
+          <summary>인물 시점</summary>
           <button id="btn-walk" class="wide primary">1인칭 모드 시작</button>
           <button id="btn-pick-start" class="wide">시작 위치 찍기</button>
           <p class="hint">찍기: 바닥·모델 윗면 클릭 → 그 위에 서기 (누른 채 드래그 → 바라볼 방향)</p>
@@ -57,7 +57,7 @@
             <input id="eye-height" type="number" step="0.05" min="0.05" />
             <span>m</span>
           </label>
-          <p class="hint">1인칭 모드에서 <kbd>Q</kbd> / <kbd>E</kbd> 로 조금씩 낮게 / 높게</p>
+          <p class="hint">1인칭 모드에서 <kbd>Q</kbd> / <kbd>E</kbd> 로 조금씩 낮게 / 높게 (발밑 기준)</p>
           <button id="btn-level" class="wide">고개 수평으로 (세로선 똑바로)</button>
 
           <h3>화각 (렌즈)</h3>
@@ -72,31 +72,50 @@
             <span>mm</span>
           </label>
           <p class="hint">숫자가 작을수록 넓게, 클수록 좁게 보입니다.</p>
-        </section>
+        </details>
+
+        <!-- 사람 (src/ui/peoplePanel.js, src/people/) -->
+        <!-- 키 버튼 값을 바꾸려면 data-person-height(m) 만 고치면 됨 -->
+        <details class="sec" open>
+          <summary>사람</summary>
+          <button id="btn-place-person" class="wide">사람 배치</button>
+          <p class="hint">바닥·모델 윗면 클릭 → 그 위에 세우기 (누른 채 드래그 → 바라볼 방향)</p>
+          <h3>키 <span id="person-height-target" class="dim">(새로 놓을 사람)</span></h3>
+          <div class="btn-row">
+            <button data-person-height="1.2">아이<br />1.2m</button>
+            <button data-person-height="1.6">성인 여성<br />1.6m</button>
+            <button data-person-height="1.75">성인 남성<br />1.75m</button>
+          </div>
+          <label class="field">
+            직접 입력
+            <input id="person-height" type="number" step="0.05" min="0.3" max="3" />
+            <span>m</span>
+          </label>
+        </details>
 
         <!-- 편집 핸들 (src/ui/toolbar.js, src/editor/gizmo.js) -->
-        <section class="edit-only">
-          <h2>편집 핸들</h2>
+        <details class="sec edit-only" open>
+          <summary>편집 핸들</summary>
           <div class="btn-row" id="gizmo-modes">
             <button data-mode="translate" class="active">이동 <kbd>W</kbd></button>
             <button data-mode="rotate">회전 <kbd>E</kbd></button>
             <button data-mode="scale">크기 <kbd>R</kbd></button>
           </div>
           <label class="check"><input id="chk-snap" type="checkbox" /> 스냅 (0.1m · 15°)</label>
-        </section>
+        </details>
 
         <!-- 선택한 모델 (src/ui/inspector.js) -->
-        <section id="inspector" class="edit-only">
-          <h2>선택한 모델</h2>
-          <p id="insp-empty" class="hint">모델을 클릭하면 선택됩니다.</p>
+        <details id="inspector" class="sec edit-only" open>
+          <summary>선택한 모델</summary>
+          <p id="insp-empty" class="hint">모델이나 사람을 클릭하면 선택됩니다.</p>
           <div id="insp-body" hidden>
             <p id="insp-name" class="name"></p>
             <label class="field">
-              높이
+              <span id="insp-height-label">높이</span>
               <input id="insp-height" type="number" step="0.01" min="0.01" />
               <span>m</span>
             </label>
-            <p class="hint">숫자를 넣고 Enter → 비율 유지하며 크기 맞춤</p>
+            <p id="insp-height-hint" class="hint">숫자를 넣고 Enter → 비율 유지하며 크기 맞춤</p>
             <p id="insp-size" class="hint"></p>
             <div class="btn-row">
               <button id="btn-duplicate">복제 <kbd>Ctrl+D</kbd></button>
@@ -104,14 +123,14 @@
             </div>
             <button id="btn-focus" class="wide">이 모델 보기 <kbd>F</kbd></button>
           </div>
-        </section>
+        </details>
 
         <!-- 보기 (src/ui/toolbar.js) -->
-        <section>
-          <h2>보기</h2>
-          <label class="check"><input id="chk-human" type="checkbox" /> 사람 모형 (1.7m)</label>
+        <details class="sec" open>
+          <summary>보기</summary>
+          <label class="check"><input id="chk-human" type="checkbox" checked /> 사람 모형 보이기</label>
           <label class="check"><input id="chk-grid" type="checkbox" checked /> 바닥 그리드</label>
-        </section>
+        </details>
       </aside>
     </div>
 

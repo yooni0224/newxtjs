@@ -9,17 +9,18 @@ import { createEditorCamera } from './core/editorCamera.js';
 import { createModelStore } from './models/modelStore.js';
 import { loadModelsFromFiles } from './models/loadFiles.js';
 import { setupFileInput } from './models/dropZone.js';
-import { measure } from './models/size.js';
+import { measure, setHeight } from './models/size.js';
 import { createGizmo } from './editor/gizmo.js';
 import { createSelection } from './editor/selection.js';
 import { setupShortcuts } from './editor/shortcuts.js';
-import { createHumanRef } from './helpers/humanRef.js';
+import { createSurfacePicker } from './editor/surfacePicker.js';
+import { createPeople } from './people/people.js';
 import { createLens } from './camera/lens.js';
 import { createWalkMode } from './camera/walkMode.js';
-import { createStartPicker } from './camera/startPicker.js';
 import { setupToolbar } from './ui/toolbar.js';
 import { setupInspector } from './ui/inspector.js';
 import { setupCameraPanel } from './ui/cameraPanel.js';
+import { setupPeoplePanel } from './ui/peoplePanel.js';
 import { toast } from './ui/toast.js';
 
 // ---------- 화면 만들기 ----------
@@ -28,12 +29,13 @@ const viewer = createViewer(viewport);
 const env = createEnvironment(viewer);
 const editorCam = createEditorCamera(viewer);
 const store = createModelStore(viewer.scene);
-const human = createHumanRef(viewer.scene);
+const people = createPeople(viewer.scene);
 const gizmo = createGizmo(viewer, editorCam.controls); // selection 보다 먼저 만들어야 함
-const selection = createSelection(viewer, gizmo, () => [...store.list(), human.root]);
+const selection = createSelection(viewer, gizmo, () => [...store.list(), ...people.list()]);
 const lens = createLens(viewer, 35); // 처음 화각 35mm
 const walk = createWalkMode({ viewer, editorCam, selection });
-const picker = createStartPicker({ viewer, walk, getSurfaces: () => store.list() });
+// 바닥·모델 윗면 찍기 (시작 위치 찍기, 사람 배치). 사람 모형은 밟을 수 없음
+const picker = createSurfacePicker({ viewer, getSurfaces: () => store.list() });
 
 // ---------- 편집 동작 ----------
 const actions = {
@@ -41,16 +43,23 @@ const actions = {
 
   duplicate() {
     const sel = selection.getSelected();
-    if (sel?.userData.kind !== 'model') return;
-    selection.select(store.duplicate(sel));
+    if (sel?.userData.kind === 'model') selection.select(store.duplicate(sel));
+    if (sel?.userData.kind === 'human') selection.select(people.duplicate(sel));
   },
 
   remove() {
     const sel = selection.getSelected();
     if (!sel) return;
     selection.select(null);
-    if (sel.userData.kind === 'human') human.setVisible(false);
+    if (sel.userData.kind === 'human') people.remove(sel);
     else store.remove(sel);
+  },
+
+  /** 높이 입력: 모델은 비율 유지 크기 조절, 사람은 키 바꾸기 */
+  setHeight(object, meters) {
+    if (object.userData.kind !== 'human') return setHeight(object, meters);
+    people.setHeight(object, meters);
+    return true;
   },
 
   focus() {
@@ -64,14 +73,14 @@ const actions = {
 
 setupShortcuts(actions);
 setupInspector(actions);
-setupCameraPanel({ walk, lens, picker });
-// 사람 모형을 처음 켤 때 세울 곳: 편집 시점이면 화면 중심, 1인칭이면 3m 앞
-setupToolbar({ gizmo, env, human, getHumanSpot: () => (walk.isActive() ? walk.pointAhead(3) : editorCam.controls.target) });
+setupCameraPanel({ walk, lens, picker, camera: viewer.camera });
+setupPeoplePanel({ people, picker, selection, camera: viewer.camera });
+setupToolbar({ gizmo, env, people });
 setupFileInput(viewport, importFiles);
 
-// 사람 모형을 끄면 선택도 해제
-on('human-visibility-changed', (visible) => {
-  if (!visible && selection.getSelected() === human.root) selection.select(null);
+// 사람 모형을 숨기면 선택도 해제
+on('people-visibility-changed', (visible) => {
+  if (!visible && selection.getSelected()?.userData.kind === 'human') selection.select(null);
 });
 
 // 모델이 하나도 없을 때만 안내 문구 표시
@@ -146,4 +155,4 @@ function nextFrame() {
 }
 
 // 개발 중 브라우저 콘솔에서 확인용 (예: app.store.list())
-if (import.meta.env.DEV) window.app = { viewer, store, selection, human, gizmo, editorCam, lens, walk, picker };
+if (import.meta.env.DEV) window.app = { viewer, store, selection, people, gizmo, editorCam, lens, walk, picker };

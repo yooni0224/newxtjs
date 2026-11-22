@@ -1,10 +1,12 @@
-// '시작 위치 찍기': 바닥이나 모델 윗면을 클릭 → 그 표면 위에 서서 1인칭 시작.
-// 클릭한 채 드래그하면 드래그한 방향을 바라봄 (그냥 클릭이면 지금 보던 방향).
-// Esc 또는 버튼을 다시 누르면 취소.
+// 바닥·모델 윗면 찍기 도구 (공용).
+//   '시작 위치 찍기'(1인칭 시작)와 '사람 배치'가 같이 씀.
+// 바닥이나 모델 윗면을 클릭 → 그 점에서 onPick 실행.
+// 클릭한 채 드래그하면 드래그한 방향을 바라봄 (그냥 클릭이면 defaultYaw).
+// Esc 또는 같은 버튼을 다시 누르면 취소.
 import * as THREE from 'three';
 import { on, emit } from '../core/events.js';
 import { isTyping } from '../core/keyboard.js';
-import { yawFromDirection } from './walkMode.js';
+import { yawFromDirection } from '../camera/walkMode.js';
 import { toast } from '../ui/toast.js';
 
 const DRAG_THRESHOLD = 8; // 이 픽셀보다 많이 움직여야 '드래그'로 봄
@@ -13,49 +15,57 @@ const MARK_COLOR = 0xff7a1a;
 
 /**
  * @param viewer       core/viewer.js
- * @param walk         camera/walkMode.js
- * @param getSurfaces  밟고 설 수 있는 물체 목록(모델들)
+ * @param getSurfaces  밟고 설 수 있는 물체 목록(모델들, 사람 모형은 제외)
  */
-export function createStartPicker({ viewer, walk, getSurfaces }) {
+export function createSurfacePicker({ viewer, getSurfaces }) {
   const { scene, camera, canvas } = viewer;
   const viewport = canvas.parentElement;
   const marker = createMarker();
   scene.add(marker.root);
+  viewer.addHelper(marker.root);
 
-  let picking = false;
+  let job = null; // 찍는 중이면 { purpose, markerHeight, defaultYaw, onPick }
   let press = null; // 누르고 있는 동안: { pointerId, x, y, point, yaw }
+  let savedCursor = '';
 
-  function start() {
-    if (picking || walk.isActive()) return;
-    picking = true;
+  /**
+   * 찍기 시작.
+   * @param purpose       구분 이름 (예: 'walk', 'person') — 버튼 표시용
+   * @param markerHeight  () => 표시 막대 높이(m)
+   * @param defaultYaw    () => 그냥 클릭했을 때 바라볼 방향
+   * @param onPick        ({ point, yaw }) => void
+   */
+  function start(options) {
+    cancel();
+    job = options;
+    savedCursor = canvas.style.cursor;
     canvas.style.cursor = 'crosshair';
-    emit('start-pick-changed', true);
+    emit('surface-pick-changed', job.purpose);
   }
 
   function cancel() {
-    if (!picking) return;
-    picking = false;
+    if (!job) return;
+    job = null;
     press = null;
     marker.hide();
-    canvas.style.cursor = '';
-    emit('start-pick-changed', false);
+    canvas.style.cursor = savedCursor;
+    emit('surface-pick-changed', null);
   }
 
   // 캡처 단계에서 먼저 받아, 편집 시점 회전·모델 선택으로 넘어가지 않게 막음 (왼쪽 버튼만)
   const capture = { capture: true };
 
   viewport.addEventListener('pointerdown', (e) => {
-    if (!picking || e.button !== 0 || e.target !== canvas) return;
+    if (!job || e.button !== 0 || e.target !== canvas) return;
     e.stopPropagation();
     const point = findSurface(e.clientX, e.clientY);
     if (!point) {
       toast('바닥이나 모델 윗면을 클릭해 주세요.', 'warn');
       return;
     }
-    const dir = camera.getWorldDirection(new THREE.Vector3());
-    press = { pointerId: e.pointerId, x: e.clientX, y: e.clientY, point, yaw: yawFromDirection(dir) };
+    press = { pointerId: e.pointerId, x: e.clientX, y: e.clientY, point, yaw: job.defaultYaw() };
     canvas.setPointerCapture(e.pointerId);
-    marker.show(point, press.yaw, walk.getEyeHeight());
+    marker.show(point, press.yaw, job.markerHeight());
   }, capture);
 
   viewport.addEventListener('pointermove', (e) => {
@@ -65,15 +75,16 @@ export function createStartPicker({ viewer, walk, getSurfaces }) {
       const yaw = yawToward(press.point, e.clientX, e.clientY);
       if (yaw !== null) press.yaw = yaw;
     }
-    marker.show(press.point, press.yaw, walk.getEyeHeight());
+    marker.show(press.point, press.yaw, job.markerHeight());
   }, capture);
 
   viewport.addEventListener('pointerup', (e) => {
     if (!press || e.pointerId !== press.pointerId) return;
     e.stopPropagation();
     const { point, yaw } = press;
+    const { onPick } = job;
     cancel();
-    walk.enterAt({ x: point.x, z: point.z, groundY: point.y, yaw });
+    onPick({ point, yaw });
   }, capture);
 
   viewport.addEventListener('pointercancel', () => {
@@ -82,11 +93,12 @@ export function createStartPicker({ viewer, walk, getSurfaces }) {
   }, capture);
 
   window.addEventListener('keydown', (e) => {
-    if (picking && e.code === 'Escape' && !isTyping(e.target)) cancel();
-  });
-  on('walk-mode-changed', (walking) => {
-    if (walking) cancel();
-  });
+    if (job && e.code === 'Escape' && !isTyping(e.target)) {
+      e.stopImmediatePropagation(); // 1인칭 모드 나가기 등 다른 Esc 동작은 막음
+      cancel();
+    }
+  }, capture);
+  on('walk-mode-changed', () => cancel());
 
   /** 화면 좌표가 가리키는 '설 수 있는 곳'. 모델 윗면 → 없으면 바닥. 벽·아랫면이면 null */
   function findSurface(x, y) {
@@ -118,7 +130,7 @@ export function createStartPicker({ viewer, walk, getSurfaces }) {
   return {
     start,
     cancel,
-    isPicking: () => picking,
+    getPurpose: () => job?.purpose ?? null,
   };
 }
 

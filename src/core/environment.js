@@ -4,7 +4,8 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const GRID_SIZE = 200; // 그리드 전체 크기(m)
 
-export function createEnvironment({ scene, renderer }) {
+export function createEnvironment(viewer) {
+  const { scene, renderer } = viewer;
   scene.background = new THREE.Color(0xdfe3e8);
 
   // 금속/반사 재질이 까맣게 보이지 않도록 은은한 실내 반사광
@@ -27,6 +28,7 @@ export function createEnvironment({ scene, renderer }) {
   major.position.y = 0.002; // 두 그리드가 겹쳐 깜빡이지 않게 살짝 띄움
   grid.add(minor, major);
   scene.add(grid);
+  viewer.addHelper(grid);
 
   return {
     grid,

@@ -7,10 +7,12 @@ const SNAP_MOVE = 0.1; // m
 const SNAP_ROTATE = THREE.MathUtils.degToRad(15);
 const SNAP_SCALE = 0.1;
 
-export function createGizmo({ scene, camera, canvas }, orbitControls) {
+export function createGizmo(viewer, orbitControls) {
+  const { scene, camera, canvas } = viewer;
   const tc = new TransformControls(camera, canvas);
   tc.setSize(0.9);
   scene.add(tc.getHelper());
+  viewer.addHelper(tc.getHelper());
 
   let mode = 'translate'; // 사용자가 고른 모드
 

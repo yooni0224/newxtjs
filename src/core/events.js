@@ -7,7 +7,13 @@
 //                              (final=true 이면 드래그가 끝난 시점)
 //   'models-changed'           모델이 추가되거나 삭제됨  값: 없음
 //   'gizmo-mode-changed'       핸들 모드가 바뀜          값: 'translate' | 'rotate' | 'scale'
-//   'human-visibility-changed' 사람 모형 켜짐/꺼짐        값: true | false
+//   'people-changed'           사람 추가/삭제/키 변경, 새로 놓을 키 변경  값: 없음
+//   'people-visibility-changed' 사람 모형 보이기 켜짐/꺼짐  값: true | false
+//   'walk-mode-changed'        1인칭 모드 들어감/나옴    값: true | false
+//   'walk-view-changed'        1인칭 시점 움직임         값: 없음
+//   'eye-height-changed'       눈높이 바뀜               값: m
+//   'lens-changed'             화각 바뀜                 값: mm
+//   'surface-pick-changed'     찍기 도구 시작/끝          값: 'walk' | 'person' | null
 
 const bus = new EventTarget();
 

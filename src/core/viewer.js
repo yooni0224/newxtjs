@@ -16,6 +16,7 @@ export function createViewer(container) {
   const canvas = renderer.domElement;
   const frameCallbacks = [];
   const resizeCallbacks = [];
+  const helpers = []; // 화면에만 보이고 내보낼 때는 숨길 것들 (그리드, 핸들, 표시 등)
 
   // 3D 화면을 누르면 입력칸 커서를 빼서 단축키가 바로 먹게
   canvas.addEventListener('pointerdown', () => document.activeElement?.blur?.());
@@ -64,6 +65,9 @@ export function createViewer(container) {
     canvas,
     onFrame: (fn) => frameCallbacks.push(fn),
     onResize: (fn) => resizeCallbacks.push(fn),
+    resize,
+    addHelper: (obj) => helpers.push(obj),
+    getHelpers: () => helpers,
     rayFromScreen,
     groundPointAt,
   };

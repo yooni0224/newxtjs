@@ -133,16 +133,21 @@ html, body {
   font-size: 15px;
   margin: 14px 0 6px;
 }
-#panel section {
+/* 접고 펼 수 있는 칸 */
+#panel .sec {
   padding: 10px 0;
   border-top: 1px solid var(--panel-line);
 }
-#panel h2 {
+#panel .sec > summary {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-dim);
   margin: 0 0 8px;
+  cursor: pointer;
+  user-select: none;
 }
+#panel .sec:not([open]) > summary { margin-bottom: 0; }
+#panel .dim { color: var(--text-dim); font-weight: 400; }
 #panel h3 {
   font-size: 12px;
   font-weight: 600;

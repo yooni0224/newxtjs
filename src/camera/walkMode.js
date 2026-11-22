@@ -2,7 +2,7 @@
 //   드래그: 고개 돌리기 · W A S D (또는 방향키): 이동 · Shift: 빠르게
 //   Q / E: 눈높이 낮추기 / 높이기 · Esc: 나가기
 // 들어가기: enter() = 편집 카메라 자리(x, z)에서 보던 방향 그대로(수평)
-//          enterAt() = 찍은 표면 위에서 (src/camera/startPicker.js)
+//          enterAt() = 찍은 표면 위에서 (src/ui/cameraPanel.js '시작 위치 찍기')
 // 카메라 높이 = 발 높이(서 있는 표면) + 눈높이. 걸어도 발 높이는 그대로, 벽은 통과(촬영용 카메라처럼).
 // 나오면 편집 카메라는 들어가기 전 자리로 돌아감.
 import * as THREE from 'three';
@@ -24,6 +24,11 @@ const MOVE_KEYS = new Set([
 /** 바라보는 방향(벡터) → 좌우 고개 각도(라디안). 수평 성분만 씀 */
 export function yawFromDirection(dir) {
   return Math.atan2(-dir.x, -dir.z);
+}
+
+/** 카메라가 보고 있는 좌우 방향 */
+export function cameraYaw(camera) {
+  return yawFromDirection(camera.getWorldDirection(new THREE.Vector3()));
 }
 
 /**

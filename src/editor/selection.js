@@ -22,6 +22,7 @@ export function createSelection(viewer, gizmo, getTargets) {
   outline.renderOrder = 999;
   outline.visible = false;
   scene.add(outline);
+  viewer.addHelper(outline);
   onFrame(() => {
     if (selected) outline.update();
   });

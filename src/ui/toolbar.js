@@ -1,7 +1,7 @@
-// 패널의 버튼·체크박스 연결: 핸들 모드, 스냅, 사람 모형, 그리드.
+// 패널의 버튼·체크박스 연결: 핸들 모드, 스냅, 사람 모형 보이기, 그리드.
 import { on } from '../core/events.js';
 
-export function setupToolbar({ gizmo, env, human, getHumanSpot }) {
+export function setupToolbar({ gizmo, env, people }) {
   const modeButtons = [...document.querySelectorAll('#gizmo-modes button')];
   const scaleButton = modeButtons.find((b) => b.dataset.mode === 'scale');
   const chkSnap = document.getElementById('chk-snap');
@@ -21,8 +21,8 @@ export function setupToolbar({ gizmo, env, human, getHumanSpot }) {
 
   chkSnap.addEventListener('change', () => gizmo.setSnap(chkSnap.checked));
 
-  chkHuman.addEventListener('change', () => human.setVisible(chkHuman.checked, getHumanSpot()));
-  on('human-visibility-changed', (visible) => {
+  chkHuman.addEventListener('change', () => people.setVisible(chkHuman.checked));
+  on('people-visibility-changed', (visible) => {
     chkHuman.checked = visible;
   });
 

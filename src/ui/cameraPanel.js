@@ -1,9 +1,10 @@
 // '인물 시점' 칸: 1인칭 모드 버튼, 시작 위치 찍기, 눈높이, 화각(mm) + 화면 왼쪽 위 정보 표시.
 // 눈높이/화각 버튼 값은 index.html 의 data-eye / data-focal 에서 바꿀 수 있음.
 import { on } from '../core/events.js';
+import { cameraYaw } from '../camera/walkMode.js';
 import { bindNumberField, showNumber } from './numberField.js';
 
-export function setupCameraPanel({ walk, lens, picker }) {
+export function setupCameraPanel({ walk, lens, picker, camera }) {
   const $ = (id) => document.getElementById(id);
   const btnWalk = $('btn-walk');
   const btnPick = $('btn-pick-start');
@@ -30,16 +31,25 @@ export function setupCameraPanel({ walk, lens, picker }) {
     updateHud();
   });
 
-  // ---------- 시작 위치 찍기 ----------
+  // ---------- 시작 위치 찍기 (찍기 도구: src/editor/surfacePicker.js) ----------
   btnPick.addEventListener('click', () => {
-    if (picker.isPicking()) picker.cancel();
-    else picker.start();
     btnPick.blur();
+    if (picker.getPurpose() === 'walk') {
+      picker.cancel();
+      return;
+    }
+    picker.start({
+      purpose: 'walk',
+      markerHeight: () => walk.getEyeHeight(),
+      defaultYaw: () => cameraYaw(camera), // 그냥 클릭하면 지금 보던 방향
+      onPick: ({ point, yaw }) => walk.enterAt({ x: point.x, z: point.z, groundY: point.y, yaw }),
+    });
   });
-  on('start-pick-changed', (picking) => {
+  on('surface-pick-changed', (purpose) => {
+    const picking = purpose === 'walk';
     btnPick.textContent = picking ? '위치 찍는 중… (Esc 취소)' : '시작 위치 찍기';
     btnPick.classList.toggle('active', picking);
-    showHelp(picking ? 'pick' : walk.isActive() ? 'walk' : 'edit');
+    showHelp(purpose ? 'pick' : walk.isActive() ? 'walk' : 'edit');
   });
 
   /** 화면 아래 안내 줄: 'edit' | 'pick' | 'walk' */
