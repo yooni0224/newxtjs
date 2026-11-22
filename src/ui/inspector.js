@@ -1,0 +1,63 @@
+// '선택한 모델' 칸: 이름, 높이 표시/입력, 가로·깊이, 복제·삭제·보기 버튼.
+import { on, emit } from '../core/events.js';
+import { measure, setHeight } from '../models/size.js';
+
+export function setupInspector({ duplicate, remove, focus }) {
+  const $ = (id) => document.getElementById(id);
+  const emptyText = $('insp-empty');
+  const body = $('insp-body');
+  const nameEl = $('insp-name');
+  const heightInput = $('insp-height');
+  const sizeEl = $('insp-size');
+  const btnDuplicate = $('btn-duplicate');
+
+  let current = null;
+
+  function refresh(precise = true) {
+    emptyText.hidden = !!current;
+    body.hidden = !current;
+    if (!current) return;
+
+    const isHuman = current.userData.kind === 'human';
+    const size = measure(current, precise);
+    nameEl.textContent = current.name;
+    if (document.activeElement !== heightInput) heightInput.value = fmt(size.y);
+    heightInput.disabled = isHuman;
+    sizeEl.textContent = `가로 ${fmt(size.x)} m · 깊이 ${fmt(size.z)} m`;
+    btnDuplicate.disabled = isHuman;
+  }
+
+  on('selection-changed', (obj) => {
+    current = obj;
+    refresh();
+  });
+  // 핸들로 움직이는 동안엔 빠른 계산, 손을 떼면 정확한 계산
+  on('object-transformed', ({ object, final }) => {
+    if (object === current) refresh(final);
+  });
+
+  heightInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') heightInput.blur(); // blur 되면서 'change' 가 일어남
+    if (e.key === 'Escape') {
+      heightInput.value = '';
+      heightInput.blur();
+    }
+  });
+  heightInput.addEventListener('change', () => {
+    const meters = parseFloat(heightInput.value);
+    if (current && meters > 0 && setHeight(current, meters)) {
+      emit('object-transformed', { object: current, final: true });
+    } else {
+      refresh();
+    }
+  });
+
+  btnDuplicate.addEventListener('click', duplicate);
+  $('btn-delete').addEventListener('click', remove);
+  $('btn-focus').addEventListener('click', focus);
+}
+
+/** 숫자 보기 좋게: 작은 값은 소수 셋째 자리까지 */
+function fmt(n) {
+  return n < 0.1 ? n.toFixed(3) : n.toFixed(2);
+}

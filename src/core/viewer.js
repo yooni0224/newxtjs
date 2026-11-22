@@ -1,0 +1,67 @@
+// 3D 화면의 바탕: 렌더러, 장면(scene), 카메라, 매 프레임 그리기, 창 크기 맞추기.
+import * as THREE from 'three';
+
+export function createViewer(container) {
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  container.prepend(renderer.domElement);
+
+  const scene = new THREE.Scene();
+
+  // 단위: 1 = 1m. near/far 는 보이는 거리 범위(0.05m ~ 2km)
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 2000);
+  camera.position.set(6, 4, 8);
+
+  const canvas = renderer.domElement;
+  const frameCallbacks = [];
+
+  // 3D 화면을 누르면 입력칸 커서를 빼서 단축키가 바로 먹게
+  canvas.addEventListener('pointerdown', () => document.activeElement?.blur?.());
+
+  function resize() {
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    if (w === 0 || h === 0) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(container);
+  resize();
+
+  renderer.setAnimationLoop(() => {
+    for (const fn of frameCallbacks) fn();
+    renderer.render(scene, camera);
+  });
+
+  const raycaster = new THREE.Raycaster();
+  const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+  /** 화면 좌표(clientX, clientY) → 카메라에서 나가는 광선 */
+  function rayFromScreen(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    const ndc = new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1,
+    );
+    raycaster.setFromCamera(ndc, camera);
+    return raycaster;
+  }
+
+  /** 화면 좌표가 가리키는 바닥(높이 0) 위치. 하늘을 가리키면 null */
+  function groundPointAt(clientX, clientY) {
+    const hit = new THREE.Vector3();
+    return rayFromScreen(clientX, clientY).ray.intersectPlane(groundPlane, hit) ? hit : null;
+  }
+
+  return {
+    renderer,
+    scene,
+    camera,
+    canvas,
+    onFrame: (fn) => frameCallbacks.push(fn),
+    rayFromScreen,
+    groundPointAt,
+  };
+}

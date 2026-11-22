@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>웹툰 배경 3D</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- 3D 화면 (캔버스는 src/core/viewer.js 가 여기에 넣음) -->
+      <main id="viewport">
+        <div id="empty-hint">
+          <p class="big">GLB · GLTF · OBJ 파일을 여기에 끌어다 놓으세요</p>
+          <p>여러 개 / 폴더 / ZIP 도 됩니다</p>
+        </div>
+        <div id="drop-overlay"><p>놓으면 불러옵니다</p></div>
+        <div id="view-help">
+          왼쪽 드래그: 회전 · 오른쪽 드래그: 이동 · 휠: 확대 &nbsp;|&nbsp; 격자 1칸 = 1m
+        </div>
+        <div id="toasts"></div>
+      </main>
+
+      <!-- 오른쪽 패널 -->
+      <aside id="panel">
+        <h1>웹툰 배경 3D</h1>
+
+        <!-- 파일 (src/models/dropZone.js) -->
+        <section>
+          <h2>파일</h2>
+          <button id="btn-open" class="wide">모델 불러오기…</button>
+          <input id="file-input" type="file" multiple accept=".glb,.gltf,.obj,.mtl,.bin,.zip,.png,.jpg,.jpeg,.webp" hidden />
+          <p class="hint">GLTF·OBJ는 .bin/.mtl/텍스처를 함께 선택하거나 폴더째 끌어다 놓으세요.</p>
+        </section>
+
+        <!-- 편집 핸들 (src/ui/toolbar.js, src/editor/gizmo.js) -->
+        <section>
+          <h2>편집 핸들</h2>
+          <div class="btn-row" id="gizmo-modes">
+            <button data-mode="translate" class="active">이동 <kbd>W</kbd></button>
+            <button data-mode="rotate">회전 <kbd>E</kbd></button>
+            <button data-mode="scale">크기 <kbd>R</kbd></button>
+          </div>
+          <label class="check"><input id="chk-snap" type="checkbox" /> 스냅 (0.1m · 15°)</label>
+        </section>
+
+        <!-- 선택한 모델 (src/ui/inspector.js) -->
+        <section id="inspector">
+          <h2>선택한 모델</h2>
+          <p id="insp-empty" class="hint">모델을 클릭하면 선택됩니다.</p>
+          <div id="insp-body" hidden>
+            <p id="insp-name" class="name"></p>
+            <label class="field">
+              높이
+              <input id="insp-height" type="number" step="0.01" min="0.01" />
+              <span>m</span>
+            </label>
+            <p class="hint">숫자를 넣고 Enter → 비율 유지하며 크기 맞춤</p>
+            <p id="insp-size" class="hint"></p>
+            <div class="btn-row">
+              <button id="btn-duplicate">복제 <kbd>Ctrl+D</kbd></button>
+              <button id="btn-delete">삭제 <kbd>Del</kbd></button>
+            </div>
+            <button id="btn-focus" class="wide">이 모델 보기 <kbd>F</kbd></button>
+          </div>
+        </section>
+
+        <!-- 보기 (src/ui/toolbar.js) -->
+        <section>
+          <h2>보기</h2>
+          <label class="check"><input id="chk-human" type="checkbox" /> 사람 모형 (1.7m)</label>
+          <label class="check"><input id="chk-grid" type="checkbox" checked /> 바닥 그리드</label>
+        </section>
+
+        <section>
+          <h2>단축키</h2>
+          <ul class="keys">
+            <li><kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd> 이동 / 회전 / 크기</li>
+            <li><kbd>Ctrl</kbd>+<kbd>D</kbd> 복제 · <kbd>Del</kbd> 삭제</li>
+            <li><kbd>F</kbd> 선택한 모델로 시점 이동</li>
+            <li><kbd>Esc</kbd> 선택 해제</li>
+          </ul>
+        </section>
+      </aside>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
