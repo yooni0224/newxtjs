@@ -2,6 +2,7 @@
 import { on, emit } from '../core/events.js';
 import { measure } from '../models/size.js';
 import { bindNumberField, showNumber } from './numberField.js';
+import { groupPath } from './helpLine.js';
 
 /** setHeight(물체, m): 모델은 비율 유지 크기 조절, 사람은 키 바꾸기 (main.js 에서 연결) */
 export function setupInspector({ duplicate, remove, focus, setHeight }) {
@@ -22,7 +23,11 @@ export function setupInspector({ duplicate, remove, focus, setHeight }) {
 
     const isHuman = current.userData.kind === 'human';
     const size = measure(current, precise);
-    nameEl.textContent = current.name;
+    nameEl.textContent = current.name || '(이름 없음)';
+    // 모델 안의 부품이면 어느 모델·그룹 안인지
+    const isPart = !current.userData.selectable;
+    $('insp-path').hidden = !isPart;
+    if (isPart) $('insp-path').textContent = `부품 · ${groupPath(current.parent).join(' › ')}`;
     showNumber(heightInput, fmt(isHuman ? current.userData.height : size.y)); // 사람은 앉아 있어도 '키'
     $('insp-height-label').textContent = isHuman ? '키' : '높이';
     $('insp-height-hint').textContent = isHuman

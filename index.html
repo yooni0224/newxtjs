@@ -8,6 +8,16 @@
   </head>
   <body>
     <div id="app">
+      <!-- 왼쪽 레이어 패널: 모델 구조 트리 (src/ui/layerPanel.js) -->
+      <aside id="layers">
+        <div class="layers-head">
+          <span class="layers-title">레이어</span>
+          <button id="btn-layers-toggle" title="레이어 패널 접기/펴기">◀▶</button>
+        </div>
+        <div id="layer-tree"></div>
+        <p class="hint layers-help">이름 클릭: 선택 · 더블클릭: 안으로 들어가기<br />눈: 숨기기(내보내기에도 빠짐) · 자물쇠: 잠그기(선택 안 됨, 1인칭에선 밟힘)</p>
+      </aside>
+
       <!-- 3D 화면 (캔버스는 src/core/viewer.js 가 여기에 넣음) -->
       <main id="viewport">
         <!-- 컷 프레임·3분할·눈높이선을 덧그리는 곳 (src/cut/cutFrame.js) -->
@@ -19,10 +29,13 @@
         <div id="drop-overlay"><p>놓으면 불러옵니다</p></div>
         <!-- 1인칭 모드 정보 (src/ui/cameraPanel.js) -->
         <div id="walk-hud" hidden><strong>1인칭</strong> <span id="hud-info"></span></div>
+        <!-- 그룹 편집 중 표시 (src/ui/helpLine.js) -->
+        <div id="context-hud" hidden><strong>그룹 편집</strong> <span id="context-path"></span> <span class="dim">· Esc: 한 단계 위로</span></div>
         <div id="view-help">
-          <span id="help-edit">왼쪽 드래그: 회전 · 오른쪽 드래그: 이동 · 휠: 확대 · Esc: 선택 해제 &nbsp;|&nbsp; 격자 1칸 = 1m</span>
+          <span id="help-edit">왼쪽 드래그: 회전 · 오른쪽 드래그: 이동 · 휠: 확대 · 더블클릭: 모델 안으로/포즈 모드 · Esc: 선택 해제 &nbsp;|&nbsp; 격자 1칸 = 1m</span>
           <span id="help-pick" hidden>바닥이나 모델 윗면을 클릭: 그 자리에 세우기 · 누른 채 드래그: 바라볼 방향 · Esc: 취소</span>
           <span id="help-pose" hidden>포즈 모드 · 관절 점(또는 몸 부위) 클릭: 관절 고르기 · 핸들로 돌리기 · Esc: 관절 해제 / 포즈 모드 끝</span>
+          <span id="help-group" hidden>그룹 편집 · 클릭: 부품 고르기 · 더블클릭: 더 안으로 · Ctrl+D 복제 · Del 삭제 · Esc: 한 단계 위로</span>
           <span id="help-walk" hidden>드래그: 고개 돌리기 · W A S D: 이동 · Shift: 빠르게 · Q / E: 낮게 / 높게 · Esc: 나가기</span>
         </div>
         <div id="toasts"></div>
@@ -133,6 +146,7 @@
           <summary>선택한 모델</summary>
           <p id="insp-empty" class="hint">모델이나 사람을 클릭하면 선택됩니다.</p>
           <div id="insp-body" hidden>
+            <p id="insp-path" class="hint" hidden></p>
             <p id="insp-name" class="name"></p>
             <label class="field">
               <span id="insp-height-label">높이</span>

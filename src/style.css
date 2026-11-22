@@ -9,6 +9,7 @@
   --btn-hover: #383d46;
   --danger: #e5534b;
   --panel-width: 270px;
+  --layers-width: 220px;
 }
 
 * { box-sizing: border-box; }
@@ -102,6 +103,114 @@ html, body {
   pointer-events: none;
 }
 #walk-hud strong { color: #8db6ff; margin-right: 4px; }
+
+#context-hud {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  transform: translateX(-50%);
+  max-width: 70%;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: rgba(30, 55, 110, 0.9);
+  color: #fff;
+  font-size: 13px;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#context-hud strong { color: #b9d0ff; margin-right: 4px; }
+#context-hud .dim { color: #b9c4dc; }
+
+/* ---------- 왼쪽 레이어 패널 ---------- */
+#layers {
+  width: var(--layers-width);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--panel-line);
+  min-height: 0;
+}
+.layers-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px 8px 12px;
+  border-bottom: 1px solid var(--panel-line);
+}
+.layers-title { font-size: 12px; font-weight: 600; color: var(--text-dim); }
+#btn-layers-toggle { padding: 2px 6px; font-size: 10px; }
+#layer-tree {
+  flex: 1;
+  overflow: auto;
+  padding: 4px 0;
+}
+#layer-tree .hint { padding: 0 12px; }
+.layers-help { padding: 6px 12px 10px; margin: 0; border-top: 1px solid var(--panel-line); }
+#layers.collapsed { width: 34px; }
+#layers.collapsed .layers-title,
+#layers.collapsed #layer-tree,
+#layers.collapsed .layers-help { display: none; }
+#layers.collapsed .layers-head { padding: 10px 4px; justify-content: center; }
+
+.layer-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 4px;
+  min-height: 24px;
+  cursor: default;
+}
+.layer-row:hover { background: rgba(255, 255, 255, 0.05); }
+.layer-row.selected { background: rgba(255, 196, 0, 0.2); }
+.layer-row.context .layer-name { color: #9cbcff; font-weight: 600; }
+.layer-row.dim .layer-name { opacity: 0.4; }
+.layer-row.locked .layer-name { font-style: italic; color: var(--text-dim); }
+.layer-toggle {
+  width: 16px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  font-size: 10px;
+}
+.layer-toggle:disabled { opacity: 1; }
+.layer-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+.layer-icon {
+  width: 22px;
+  height: 22px;
+  padding: 3px;
+  border: none;
+  background: none;
+  opacity: 0.35;
+}
+.layer-row:hover .layer-icon { opacity: 0.6; }
+.layer-icon.on { opacity: 1 !important; color: #ffb74d; }
+.layer-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.layer-more {
+  border: none;
+  background: none;
+  color: var(--accent);
+  padding: 2px 0;
+  font-size: 12px;
+}
 
 #toasts {
   position: absolute;

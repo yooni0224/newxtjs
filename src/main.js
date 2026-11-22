@@ -26,6 +26,7 @@ import { setupCameraPanel } from './ui/cameraPanel.js';
 import { setupPeoplePanel } from './ui/peoplePanel.js';
 import { setupCutPanel } from './ui/cutPanel.js';
 import { setupHelpLine } from './ui/helpLine.js';
+import { setupLayerPanel } from './ui/layerPanel.js';
 import { toast } from './ui/toast.js';
 
 // ---------- 화면 만들기 ----------
@@ -49,10 +50,12 @@ const picker = createSurfacePicker({ viewer, getSurfaces: () => store.list() });
 const actions = {
   setMode: (mode) => gizmo.setMode(mode),
 
+  /** 복제: 사람 / 모델 전체 / 그룹 편집 중이면 부품 */
   duplicate() {
     const sel = selection.getSelected();
-    if (sel?.userData.kind === 'model') selection.select(store.duplicate(sel));
-    if (sel?.userData.kind === 'human') selection.select(people.duplicate(sel));
+    if (!sel) return;
+    if (sel.userData.kind === 'human') selection.select(people.duplicate(sel));
+    else selection.select(store.duplicate(sel));
   },
 
   remove() {
@@ -76,17 +79,22 @@ const actions = {
     else if (store.list().length) editorCam.focusOn(store.list());
   },
 
-  /** Esc: 관절 해제 → 포즈 모드 끝 → 선택 해제 순서로 한 단계씩 */
+  /** Esc: 관절 해제 → 포즈 모드 끝 → 그룹 한 단계 위로 → 선택 해제 순서로 한 단계씩 */
   escape() {
     if (poseMode.escape()) return;
+    if (selection.exitContext()) return;
     selection.select(null);
   },
 };
 
-// 더블클릭: 사람 → 포즈 모드
+// 더블클릭: 사람 → 포즈 모드, 모델·그룹 → 그 안으로 들어가기
 selection.onDoubleClick((sel) => {
   if (sel?.userData.kind === 'human') poseMode.enter(sel);
+  else if (sel) selection.enter(sel);
 });
+// 모델·부품이 지워지거나 숨겨지거나 잠기면 선택·그룹 편집 정리
+on('models-changed', () => selection.validate());
+on('model-flags-changed', () => selection.validate());
 
 setupShortcuts(actions);
 setupInspector(actions);
@@ -94,7 +102,8 @@ setupCameraPanel({ walk, lens, picker, camera: viewer.camera });
 setupPeoplePanel({ people, picker, selection, camera: viewer.camera, poseMode });
 setupToolbar({ gizmo, env, people });
 setupCutPanel({ viewer, frame, people, lineOverlay });
-setupHelpLine({ walk, picker, poseMode });
+setupHelpLine({ walk, picker, poseMode, selection });
+setupLayerPanel({ store, selection });
 setupFileInput(viewport, importFiles);
 
 // 사람 모형을 숨기면 선택도 해제

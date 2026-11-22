@@ -5,7 +5,9 @@
 //   'selection-changed'        선택된 물체가 바뀜        값: 물체 또는 null
 //   'object-transformed'       선택한 물체가 움직임/회전/크기 변경  값: { object, final }
 //                              (final=true 이면 드래그가 끝난 시점)
-//   'models-changed'           모델이 추가되거나 삭제됨  값: 없음
+//   'models-changed'           모델(또는 모델 안의 부품)이 추가되거나 삭제됨  값: 없음
+//   'model-flags-changed'      모델·부품 숨기기/잠그기 바뀜  값: 그 물체
+//   'context-changed'          그룹 편집 중인 그룹 바뀜 (더블클릭/Esc)  값: 그룹 또는 null (맨 위)
 //   'gizmo-mode-changed'       핸들 모드가 바뀜          값: 'translate' | 'rotate' | 'scale'
 //   'people-changed'           사람 추가/삭제/키 변경, 새로 놓을 키 변경  값: 없음
 //   'people-visibility-changed' 사람 모형 보이기 켜짐/꺼짐  값: true | false
