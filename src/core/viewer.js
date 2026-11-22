@@ -15,6 +15,7 @@ export function createViewer(container) {
 
   const canvas = renderer.domElement;
   const frameCallbacks = [];
+  const lateFrameCallbacks = []; // 카메라 움직임이 다 끝난 뒤에 할 일 (화면 덧그림 등)
   const resizeCallbacks = [];
   const helpers = []; // 화면에만 보이고 내보낼 때는 숨길 것들 (그리드, 핸들, 표시 등)
 
@@ -35,6 +36,7 @@ export function createViewer(container) {
 
   renderer.setAnimationLoop(() => {
     for (const fn of frameCallbacks) fn();
+    for (const fn of lateFrameCallbacks) fn();
     renderer.render(scene, camera);
   });
 
@@ -64,6 +66,7 @@ export function createViewer(container) {
     camera,
     canvas,
     onFrame: (fn) => frameCallbacks.push(fn),
+    onLateFrame: (fn) => lateFrameCallbacks.push(fn),
     onResize: (fn) => resizeCallbacks.push(fn),
     resize,
     addHelper: (obj) => helpers.push(obj),

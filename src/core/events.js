@@ -15,6 +15,7 @@
 //   'eye-height-changed'       눈높이 바뀜               값: m
 //   'lens-changed'             화각 바뀜                 값: mm
 //   'surface-pick-changed'     찍기 도구 시작/끝          값: 'walk' | 'person' | null
+//   'frame-changed'            컷 프레임 설정 바뀜        값: { enabled, ratioW, ratioH, thirds, horizon }
 
 const bus = new EventTarget();
 

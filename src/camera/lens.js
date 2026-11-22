@@ -1,20 +1,33 @@
-// 화각(렌즈 mm). 카메라 기준은 35mm 필름(풀프레임): 화면의 긴 변 = 36mm.
+// 화각(렌즈 mm). 기준은 35mm 필름(풀프레임): 컷 프레임의 긴 변 = 36mm.
 // 예) 24mm = 넓게, 35mm = 보통, 50mm = 사람 눈과 비슷하게 좁게.
-// (3단계에서 컷 프레임이 생기면 '화면' 대신 '프레임'의 긴 변 기준으로 바꿀 예정)
-import { emit } from '../core/events.js';
+// 프레임이 꺼져 있으면 3D 화면 전체의 긴 변 기준.
+import * as THREE from 'three';
+import { on, emit } from '../core/events.js';
 
 const FILM_SIZE = 36; // mm
 export const MIN_FOCAL = 8;
 export const MAX_FOCAL = 300;
 
-export function createLens(viewer, initialFocal = 35) {
-  const { camera } = viewer;
-  camera.filmGauge = FILM_SIZE;
+/**
+ * @param viewer            core/viewer.js
+ * @param getReferenceRect  () => 컷 프레임 {x, y, w, h} (화면 px)
+ */
+export function createLens(viewer, getReferenceRect, initialFocal = 35) {
+  const { camera, canvas } = viewer;
   let focal = initialFocal;
 
-  // three.js 가 mm → 화각(도)으로 바꿔 줌. 창 크기가 바뀌면 다시 계산.
-  const apply = () => camera.setFocalLength(focal);
+  // 프레임 긴 변이 36mm 필름에 해당하도록 카메라의 세로 화각을 계산
+  function apply() {
+    const viewH = canvas.clientHeight;
+    const r = getReferenceRect();
+    const longSide = Math.max(r.w, r.h);
+    if (!viewH || !longSide) return;
+    const halfTan = ((FILM_SIZE / 2) * viewH) / (focal * longSide);
+    camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(halfTan));
+    camera.updateProjectionMatrix();
+  }
   viewer.onResize(apply);
+  on('frame-changed', apply);
   apply();
 
   return {

@@ -16,11 +16,13 @@ import { setupShortcuts } from './editor/shortcuts.js';
 import { createSurfacePicker } from './editor/surfacePicker.js';
 import { createPeople } from './people/people.js';
 import { createLens } from './camera/lens.js';
+import { createCutFrame } from './cut/cutFrame.js';
 import { createWalkMode } from './camera/walkMode.js';
 import { setupToolbar } from './ui/toolbar.js';
 import { setupInspector } from './ui/inspector.js';
 import { setupCameraPanel } from './ui/cameraPanel.js';
 import { setupPeoplePanel } from './ui/peoplePanel.js';
+import { setupCutPanel } from './ui/cutPanel.js';
 import { toast } from './ui/toast.js';
 
 // ---------- 화면 만들기 ----------
@@ -32,7 +34,8 @@ const store = createModelStore(viewer.scene);
 const people = createPeople(viewer.scene);
 const gizmo = createGizmo(viewer, editorCam.controls); // selection 보다 먼저 만들어야 함
 const selection = createSelection(viewer, gizmo, () => [...store.list(), ...people.list()]);
-const lens = createLens(viewer, 35); // 처음 화각 35mm
+const frame = createCutFrame(viewer); // 컷 프레임 (화각·내보내기 기준)
+const lens = createLens(viewer, frame.getRect, 35); // 처음 화각 35mm
 const walk = createWalkMode({ viewer, editorCam, selection, getSurfaces: () => store.list() });
 // 바닥·모델 윗면 찍기 (시작 위치 찍기, 사람 배치). 사람 모형은 밟을 수 없음
 const picker = createSurfacePicker({ viewer, getSurfaces: () => store.list() });
@@ -76,6 +79,7 @@ setupInspector(actions);
 setupCameraPanel({ walk, lens, picker, camera: viewer.camera });
 setupPeoplePanel({ people, picker, selection, camera: viewer.camera });
 setupToolbar({ gizmo, env, people });
+setupCutPanel({ viewer, frame, people });
 setupFileInput(viewport, importFiles);
 
 // 사람 모형을 숨기면 선택도 해제
@@ -155,4 +159,4 @@ function nextFrame() {
 }
 
 // 개발 중 브라우저 콘솔에서 확인용 (예: app.store.list())
-if (import.meta.env.DEV) window.app = { viewer, store, selection, people, gizmo, editorCam, lens, walk, picker };
+if (import.meta.env.DEV) window.app = { viewer, store, selection, people, gizmo, editorCam, lens, walk, picker, frame };

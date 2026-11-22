@@ -10,6 +10,8 @@
     <div id="app">
       <!-- 3D 화면 (캔버스는 src/core/viewer.js 가 여기에 넣음) -->
       <main id="viewport">
+        <!-- 컷 프레임·3분할·눈높이선을 덧그리는 곳 (src/cut/cutFrame.js) -->
+        <canvas id="overlay"></canvas>
         <div id="empty-hint">
           <p class="big">GLB · GLTF · OBJ 파일을 여기에 끌어다 놓으세요</p>
           <p>여러 개 / 폴더 / ZIP 도 됩니다</p>
@@ -125,6 +127,58 @@
             </div>
             <button id="btn-focus" class="wide">이 모델 보기 <kbd>F</kbd></button>
           </div>
+        </details>
+
+        <!-- 컷 프레임 (src/ui/cutPanel.js, src/cut/cutFrame.js) -->
+        <!-- 비율 버튼 값을 바꾸려면 data-ratio="가로:세로" 만 고치면 됨 -->
+        <details class="sec" open>
+          <summary>컷 프레임</summary>
+          <label class="check"><input id="chk-frame" type="checkbox" checked /> 프레임 표시</label>
+          <div class="btn-row">
+            <button data-ratio="3:4">세로형<br />3:4</button>
+            <button data-ratio="4:3">가로형<br />4:3</button>
+            <button data-ratio="1:1">정사각<br />1:1</button>
+          </div>
+          <label class="field">
+            직접 입력
+            <input id="ratio-w" type="number" min="0.1" step="0.1" />
+            <span>:</span>
+            <input id="ratio-h" type="number" min="0.1" step="0.1" />
+          </label>
+          <label class="check"><input id="chk-thirds" type="checkbox" /> 3분할 격자</label>
+          <label class="check"><input id="chk-horizon" type="checkbox" checked /> 눈높이선 (수평선)</label>
+          <p class="hint">화각(mm)은 프레임의 긴 변 기준입니다.</p>
+        </details>
+
+        <!-- 내보내기 (src/ui/cutPanel.js, src/export/) -->
+        <details class="sec" open>
+          <summary>내보내기 (PNG)</summary>
+          <label class="field">
+            가로
+            <input id="export-width" type="number" min="100" step="100" value="2000" />
+            <span>px</span>
+          </label>
+          <p id="export-size" class="hint"></p>
+          <div class="btn-row">
+            <button data-export-mode="normal">일반 렌더</button>
+            <button data-export-mode="line">선화</button>
+          </div>
+          <div id="line-options" hidden>
+            <label class="field">
+              선 두께
+              <input id="line-width" type="range" min="1" max="10" step="0.5" value="2" />
+              <span id="line-width-value" class="value"></span>
+            </label>
+            <label class="field">
+              모서리 각도
+              <input id="crease-angle" type="range" min="5" max="90" step="1" value="30" />
+              <span id="crease-angle-value" class="value"></span>
+            </label>
+            <p class="hint">흰 면 + 검은 선, 배경 투명. 각도가 작을수록 모서리 선이 많아집니다.</p>
+          </div>
+          <label class="check"><input id="chk-export-people" type="checkbox" checked /> 사람 모형 포함</label>
+          <button id="btn-export" class="wide primary">PNG로 내보내기</button>
+          <p class="hint">프레임 안쪽만 저장됩니다 (그리드·핸들·선 표시는 빠짐).</p>
         </details>
 
         <!-- 보기 (src/ui/toolbar.js) -->
