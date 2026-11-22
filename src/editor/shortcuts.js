@@ -1,12 +1,20 @@
-// 키보드 단축키. 글자 입력칸에 쓰는 중에는 동작하지 않음.
+// 편집 모드 키보드 단축키. 글자 입력칸에 쓰는 중이거나 1인칭 모드일 때는 동작하지 않음.
 // e.code(키 위치)를 써서 한글 입력 상태에서도 동작함.
+// (1인칭 모드 키는 src/camera/walkMode.js 에 있음)
+import { on } from '../core/events.js';
+import { isTyping } from '../core/keyboard.js';
 
 /**
  * @param actions { setMode(mode), duplicate(), remove(), focus(), deselect() }
  */
 export function setupShortcuts(actions) {
+  let walking = false;
+  on('walk-mode-changed', (value) => {
+    walking = value;
+  });
+
   window.addEventListener('keydown', (e) => {
-    if (isTyping(e.target)) return;
+    if (walking || isTyping(e.target)) return;
     const ctrl = e.ctrlKey || e.metaKey; // 맥은 Cmd
 
     if (ctrl && e.code === 'KeyD') {
@@ -39,10 +47,4 @@ export function setupShortcuts(actions) {
         break;
     }
   });
-}
-
-function isTyping(el) {
-  if (!(el instanceof HTMLElement)) return false;
-  if (el.isContentEditable || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') return true;
-  return el.tagName === 'INPUT' && !['checkbox', 'radio', 'button', 'range', 'file'].includes(el.type);
 }

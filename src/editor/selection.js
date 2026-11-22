@@ -13,6 +13,7 @@ export function createSelection(viewer, gizmo, getTargets) {
   const { canvas, scene, onFrame } = viewer;
   let selected = null;
   let down = null;
+  let enabled = true; // 1인칭 모드 동안에는 false
 
   const outline = new THREE.BoxHelper(undefined, 0xffc400);
   outline.material.depthTest = false; // 벽 뒤에 있어도 보이게
@@ -30,7 +31,7 @@ export function createSelection(viewer, gizmo, getTargets) {
     down = e.button === 0 && !gizmo.isDragging() ? { x: e.clientX, y: e.clientY } : null;
   });
   canvas.addEventListener('pointerup', (e) => {
-    if (!down || e.button !== 0) return;
+    if (!enabled || !down || e.button !== 0) return;
     const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
     down = null;
     if (moved > CLICK_TOLERANCE) return;
@@ -48,6 +49,7 @@ export function createSelection(viewer, gizmo, getTargets) {
   }
 
   function select(object) {
+    if (object && !enabled) return;
     if (object === selected) return;
     selected = object;
     gizmo.attach(object);
@@ -59,6 +61,10 @@ export function createSelection(viewer, gizmo, getTargets) {
   return {
     select,
     getSelected: () => selected,
+    setEnabled(value) {
+      enabled = value;
+      if (!value) select(null);
+    },
   };
 }
 

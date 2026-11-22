@@ -14,8 +14,11 @@ import { createGizmo } from './editor/gizmo.js';
 import { createSelection } from './editor/selection.js';
 import { setupShortcuts } from './editor/shortcuts.js';
 import { createHumanRef } from './helpers/humanRef.js';
+import { createLens } from './camera/lens.js';
+import { createWalkMode } from './camera/walkMode.js';
 import { setupToolbar } from './ui/toolbar.js';
 import { setupInspector } from './ui/inspector.js';
+import { setupCameraPanel } from './ui/cameraPanel.js';
 import { toast } from './ui/toast.js';
 
 // ---------- 화면 만들기 ----------
@@ -27,6 +30,8 @@ const store = createModelStore(viewer.scene);
 const human = createHumanRef(viewer.scene);
 const gizmo = createGizmo(viewer, editorCam.controls); // selection 보다 먼저 만들어야 함
 const selection = createSelection(viewer, gizmo, () => [...store.list(), human.root]);
+const lens = createLens(viewer, 35); // 처음 화각 35mm
+const walk = createWalkMode({ viewer, editorCam, selection, getTargets: () => [...store.list(), human.root] });
 
 // ---------- 편집 동작 ----------
 const actions = {
@@ -57,7 +62,9 @@ const actions = {
 
 setupShortcuts(actions);
 setupInspector(actions);
-setupToolbar({ gizmo, env, human, getHumanSpot: () => editorCam.controls.target });
+setupCameraPanel({ walk, lens });
+// 사람 모형을 처음 켤 때 세울 곳: 편집 시점이면 화면 중심, 1인칭이면 3m 앞
+setupToolbar({ gizmo, env, human, getHumanSpot: () => (walk.isActive() ? walk.pointAhead(3) : editorCam.controls.target) });
 setupFileInput(viewport, importFiles);
 
 // 사람 모형을 끄면 선택도 해제
@@ -114,13 +121,14 @@ async function importFiles(entries, dropPoint) {
   toast(`${models.length}개 불러옴`);
 }
 
-/** 파일을 놓은 바닥 위치. 하늘이나 너무 먼 곳이면 화면 중심 바닥 */
+/** 파일을 놓은 바닥 위치. 하늘이나 너무 먼 곳이면 화면 중심(1인칭이면 3m 앞) 바닥 */
 function placementPoint(dropPoint) {
-  const target = editorCam.controls.target.clone().setY(0);
-  if (!dropPoint) return target;
+  const walking = walk.isActive();
+  const fallback = walking ? walk.pointAhead(3) : editorCam.controls.target.clone().setY(0);
+  if (!dropPoint) return fallback;
   const hit = viewer.groundPointAt(dropPoint.x, dropPoint.y);
-  const maxDist = viewer.camera.position.distanceTo(editorCam.controls.target) * 4;
-  return hit && hit.distanceTo(viewer.camera.position) < maxDist ? hit : target;
+  const maxDist = walking ? 50 : viewer.camera.position.distanceTo(editorCam.controls.target) * 4;
+  return hit && hit.distanceTo(viewer.camera.position) < maxDist ? hit : fallback;
 }
 
 function warnIfOddSize(name, height) {
@@ -136,4 +144,4 @@ function nextFrame() {
 }
 
 // 개발 중 브라우저 콘솔에서 확인용 (예: app.store.list())
-if (import.meta.env.DEV) window.app = { viewer, store, selection, human, gizmo, editorCam };
+if (import.meta.env.DEV) window.app = { viewer, store, selection, human, gizmo, editorCam, lens, walk };

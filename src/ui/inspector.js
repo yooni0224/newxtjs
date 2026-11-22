@@ -1,6 +1,7 @@
 // '선택한 모델' 칸: 이름, 높이 표시/입력, 가로·깊이, 복제·삭제·보기 버튼.
 import { on, emit } from '../core/events.js';
 import { measure, setHeight } from '../models/size.js';
+import { bindNumberField, showNumber } from './numberField.js';
 
 export function setupInspector({ duplicate, remove, focus }) {
   const $ = (id) => document.getElementById(id);
@@ -21,7 +22,7 @@ export function setupInspector({ duplicate, remove, focus }) {
     const isHuman = current.userData.kind === 'human';
     const size = measure(current, precise);
     nameEl.textContent = current.name;
-    if (document.activeElement !== heightInput) heightInput.value = fmt(size.y);
+    showNumber(heightInput, fmt(size.y));
     heightInput.disabled = isHuman;
     sizeEl.textContent = `가로 ${fmt(size.x)} m · 깊이 ${fmt(size.z)} m`;
     btnDuplicate.disabled = isHuman;
@@ -36,16 +37,8 @@ export function setupInspector({ duplicate, remove, focus }) {
     if (object === current) refresh(final);
   });
 
-  heightInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') heightInput.blur(); // blur 되면서 'change' 가 일어남
-    if (e.key === 'Escape') {
-      heightInput.value = '';
-      heightInput.blur();
-    }
-  });
-  heightInput.addEventListener('change', () => {
-    const meters = parseFloat(heightInput.value);
-    if (current && meters > 0 && setHeight(current, meters)) {
+  bindNumberField(heightInput, (meters) => {
+    if (current && meters && setHeight(current, meters)) {
       emit('object-transformed', { object: current, final: true });
     } else {
       refresh();

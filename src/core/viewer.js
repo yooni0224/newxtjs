@@ -15,6 +15,7 @@ export function createViewer(container) {
 
   const canvas = renderer.domElement;
   const frameCallbacks = [];
+  const resizeCallbacks = [];
 
   // 3D 화면을 누르면 입력칸 커서를 빼서 단축키가 바로 먹게
   canvas.addEventListener('pointerdown', () => document.activeElement?.blur?.());
@@ -26,6 +27,7 @@ export function createViewer(container) {
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    for (const fn of resizeCallbacks) fn();
   }
   new ResizeObserver(resize).observe(container);
   resize();
@@ -61,6 +63,7 @@ export function createViewer(container) {
     camera,
     canvas,
     onFrame: (fn) => frameCallbacks.push(fn),
+    onResize: (fn) => resizeCallbacks.push(fn),
     rayFromScreen,
     groundPointAt,
   };

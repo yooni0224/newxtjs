@@ -85,6 +85,19 @@ html, body {
   pointer-events: none;
 }
 
+#walk-hud {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(25, 28, 33, 0.85);
+  color: #fff;
+  font-size: 13px;
+  pointer-events: none;
+}
+#walk-hud strong { color: #8db6ff; margin-right: 4px; }
+
 #toasts {
   position: absolute;
   left: 50%;
@@ -130,6 +143,17 @@ html, body {
   color: var(--text-dim);
   margin: 0 0 8px;
 }
+#panel h3 {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 14px 0 6px;
+}
+
+/* 1인칭 모드 동안 편집 칸은 흐리게 */
+body.walking .edit-only {
+  opacity: 0.35;
+  pointer-events: none;
+}
 
 button {
   font: inherit;
@@ -148,10 +172,23 @@ button.active {
   color: #fff;
 }
 button.wide { width: 100%; margin-top: 6px; }
+button.primary {
+  padding: 9px 8px;
+  font-weight: 600;
+  border-color: var(--accent);
+}
+button.primary.active { background: #d9822b; border-color: #d9822b; }
 #btn-delete:hover:not(:disabled) { background: var(--danger); }
 
-.btn-row { display: flex; gap: 6px; }
+.btn-row { display: flex; gap: 6px; margin-bottom: 8px; }
 .btn-row button { flex: 1; padding: 6px 4px; }
+.btn-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.btn-grid button { padding: 6px 4px; }
 
 kbd {
   font-family: inherit;
@@ -202,10 +239,3 @@ button.active kbd { color: #fff; }
   word-break: break-all;
 }
 
-.keys {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  color: var(--text-dim);
-  line-height: 1.9;
-}
