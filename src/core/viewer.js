@@ -18,6 +18,8 @@ export function createViewer(container) {
   const lateFrameCallbacks = []; // 카메라 움직임이 다 끝난 뒤에 할 일 (화면 덧그림 등)
   const resizeCallbacks = [];
   const helpers = []; // 화면에만 보이고 내보낼 때는 숨길 것들 (그리드, 핸들, 표시 등)
+  const colorOnly = []; // 색 그림에만 나오고 선 찾기(선화·일반 렌더 선)에서는 뺄 것들 (바닥 그림자 받이 등)
+  let pipeline = null; // 매 프레임 그리는 방법을 바꾸고 싶을 때 (예: 일반 렌더 선 미리보기)
 
   // 3D 화면을 누르면 입력칸 커서를 빼서 단축키가 바로 먹게
   canvas.addEventListener('pointerdown', () => document.activeElement?.blur?.());
@@ -37,7 +39,8 @@ export function createViewer(container) {
   renderer.setAnimationLoop(() => {
     for (const fn of frameCallbacks) fn();
     for (const fn of lateFrameCallbacks) fn();
-    renderer.render(scene, camera);
+    if (pipeline) pipeline();
+    else renderer.render(scene, camera);
   });
 
   const raycaster = new THREE.Raycaster();
@@ -71,6 +74,12 @@ export function createViewer(container) {
     resize,
     addHelper: (obj) => helpers.push(obj),
     getHelpers: () => helpers,
+    addColorOnly: (obj) => colorOnly.push(obj),
+    getColorOnly: () => colorOnly,
+    /** 매 프레임 그리는 함수 바꾸기 (null 이면 보통대로) */
+    setRenderPipeline(fn) {
+      pipeline = fn;
+    },
     rayFromScreen,
     groundPointAt,
   };

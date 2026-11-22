@@ -16,6 +16,7 @@
 //   'lens-changed'             화각 바뀜                 값: mm
 //   'surface-pick-changed'     찍기 도구 시작/끝          값: 'walk' | 'person' | null
 //   'frame-changed'            컷 프레임 설정 바뀜        값: { enabled, ratioW, ratioH, thirds, horizon }
+//   'render-lines-changed'     일반 렌더 선 설정 바뀜     값: { enabled, width, crease }
 
 const bus = new EventTarget();
 

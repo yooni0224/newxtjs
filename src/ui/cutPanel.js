@@ -5,7 +5,7 @@ import { renderCut, downloadPng, exportSize, MAX_EXPORT_WIDTH } from '../export/
 import { bindNumberField, showNumber } from './numberField.js';
 import { toast } from './toast.js';
 
-export function setupCutPanel({ viewer, frame, people }) {
+export function setupCutPanel({ viewer, frame, people, lineOverlay }) {
   const $ = (id) => document.getElementById(id);
 
   // ---------- 컷 프레임 ----------
@@ -32,6 +32,21 @@ export function setupCutPanel({ viewer, frame, people }) {
   const lineWidth = $('line-width');
   const crease = $('crease-angle');
   let mode = 'normal';
+
+  // 일반 렌더 선 (설정은 lineOverlay 가 가지고 있고, 바꾸면 화면 미리보기에 바로 반영)
+  const chkRenderLines = $('chk-render-lines');
+  const renderLineWidth = $('render-line-width');
+  const renderCrease = $('render-crease-angle');
+  const applyRenderLines = () =>
+    lineOverlay.set({
+      enabled: chkRenderLines.checked,
+      width: parseFloat(renderLineWidth.value),
+      crease: parseFloat(renderCrease.value),
+    });
+  chkRenderLines.addEventListener('change', applyRenderLines);
+  renderLineWidth.addEventListener('input', applyRenderLines);
+  renderCrease.addEventListener('input', applyRenderLines);
+  on('render-lines-changed', refresh);
 
   widthInput.max = String(MAX_EXPORT_WIDTH);
   bindNumberField(widthInput, () => refresh());
@@ -64,6 +79,19 @@ export function setupCutPanel({ viewer, frame, people }) {
     $('line-options').hidden = mode !== 'line';
     $('line-width-value').textContent = `${lineWidth.value}px`;
     $('crease-angle-value').textContent = `${crease.value}°`;
+
+    const rl = lineOverlay.getSettings();
+    $('render-line-options').hidden = mode !== 'normal';
+    chkRenderLines.checked = rl.enabled;
+    renderLineWidth.value = String(rl.width);
+    renderCrease.value = String(rl.crease);
+    $('render-line-sliders').hidden = !rl.enabled;
+    // 내보낼 때 실제 두께 (화면 px × 결과 가로 / 프레임 가로)
+    const outLine = (rl.width * w) / frame.getRect().w;
+    $('render-line-width-value').textContent = `${rl.width}px`;
+    $('render-line-width-value').title = `내보내면 약 ${outLine.toFixed(1)}px`;
+    $('render-crease-angle-value').textContent = `${rl.crease}°`;
+    lineOverlay.setPreview(mode === 'normal'); // 미리보기는 '일반 렌더' 일 때만
   }
   on('frame-changed', refresh);
   viewer.onResize(refresh);
@@ -81,8 +109,8 @@ export function setupCutPanel({ viewer, frame, people }) {
         rect,
         width: exportWidth(),
         mode,
-        lineWidth: parseFloat(lineWidth.value),
-        creaseAngle: parseFloat(crease.value),
+        lineArt: { width: parseFloat(lineWidth.value), crease: parseFloat(crease.value) },
+        renderLines: lineOverlay.getSettings(),
         hide: $('chk-export-people').checked ? [] : [people.group],
       });
       const s = frame.getState();
