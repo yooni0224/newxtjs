@@ -1,7 +1,6 @@
 #!/bin/bash
 cd "$(dirname "$0")"
-if [ ! -d node_modules ]; then
-  echo "[first run] installing... please wait"
-  npm install
-fi
+echo "[1/2] checking packages... (first run takes a while)"
+npm install
+echo "[2/2] starting..."
 npm run dev

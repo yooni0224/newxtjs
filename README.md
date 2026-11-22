@@ -11,7 +11,7 @@
    - **Mac**: `start-mac.command` 더블클릭 (막히면 우클릭 → 열기)
    - 또는 이 폴더에서 터미널을 열고:
      ```
-     npm install     ← 처음 한 번만
+     npm install     ← 처음 한 번 + 업데이트 받은 뒤에 한 번
      npm run dev
      ```
 3. 브라우저가 자동으로 열립니다. 안 열리면 http://localhost:5173 접속.

@@ -1,8 +1,7 @@
 @echo off
 cd /d "%~dp0"
-if not exist node_modules (
-  echo [first run] installing... please wait
-  call npm install
-)
+echo [1/2] checking packages... (first run takes a while)
+call npm install
+echo [2/2] starting...
 call npm run dev
 pause
