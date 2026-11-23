@@ -10,7 +10,7 @@
 import * as THREE from 'three';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { emit } from '../core/events.js';
-import { measure } from './size.js';
+import { measure, visibleBox } from './size.js';
 import { prepareFastRaycast } from '../core/fastRaycast.js';
 
 export function createModelStore(scene) {
@@ -42,7 +42,7 @@ export function createModelStore(scene) {
     prepare(object);
 
     // 기준점을 바닥 한가운데로: 모델을 옮겨서 바닥 중앙이 root 원점에 오게 함
-    const box = new THREE.Box3().setFromObject(object, true);
+    const box = visibleBox(object); // 숨긴 부품은 빼고 (숨긴 큰 보조 물체 때문에 뜨지 않게)
     if (!box.isEmpty()) {
       const center = box.getCenter(new THREE.Vector3());
       object.position.x -= center.x;
@@ -75,11 +75,17 @@ export function createModelStore(scene) {
     return root;
   }
 
-  /** 빠른 광선 검사 준비 + 그림자 드리우고 받기 (src/render/shadows.js) */
+  /**
+   * 빠른 광선 검사 준비 + 그림자 드리우고 받기 (src/render/shadows.js).
+   * 유리처럼 많이 비치는 재질로만 된 메시는 그림자를 드리우지 않음 (창문 때문에 방 안이 컴컴해지지 않게)
+   */
   function prepare(object) {
     prepareFastRaycast(object);
     object.traverse((o) => {
-      if (o.isMesh) o.castShadow = o.receiveShadow = true;
+      if (!o.isMesh) return;
+      const mats = [].concat(o.material);
+      o.castShadow = !mats.every((m) => m && m.transparent && m.opacity < 0.6);
+      o.receiveShadow = true;
     });
   }
 

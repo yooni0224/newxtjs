@@ -48,9 +48,10 @@ export async function loadModelsFromFiles(entries) {
       return `${list.slice(0, 3).join(', ')}${list.length > 3 ? ' …' : ''}`;
     };
     try {
-      const { object, noMtl } = await loadOne(entry, resolver);
+      const { object, noMtl, notes } = await loadOne(entry, resolver);
       cleanUp(object);
       models.push({ name, object, entry });
+      for (const note of notes) warnings.push(`${name}: ${note}`);
       if (resolver.missing.size) {
         warnings.push(`${name}: 함께 필요한 파일 ${resolver.missing.size}개를 못 찾았어요 (${missingText()})`);
       }
@@ -86,13 +87,14 @@ async function loadOne(entry, resolver) {
   const type = extOf(entry.path);
   let object;
   let noMtl = false;
+  let notes = [];
 
   if (type === 'glb' || type === 'gltf' || type === 'blend') {
     const loader = new GLTFLoader(manager);
     loader.setDRACOLoader(draco);
     loader.setMeshoptDecoder(MeshoptDecoder);
     let data;
-    if (type === 'blend') data = await convertBlend(entry, resolver.files);
+    if (type === 'blend') ({ data, notes } = await convertBlend(entry, resolver.files));
     else data = type === 'glb' ? await entry.file.arrayBuffer() : await entry.file.text();
     const gltf = await loader.parseAsync(data, '');
     object = gltf.scene || gltf.scenes[0];
@@ -118,7 +120,7 @@ async function loadOne(entry, resolver) {
     object = await loadSkp(await entry.file.arrayBuffer());
   }
 
-  return { object, noMtl };
+  return { object, noMtl, notes };
 }
 
 /** 불러온 모델 정리: 파일에 딸려 온 조명·카메라 제거, 면 양쪽 다 보이게 */

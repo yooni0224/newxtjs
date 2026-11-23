@@ -18,7 +18,7 @@ let askedPath = false; // 위치를 물어봤는데 취소했으면 이번 창�
 /**
  * @param entry  { file, path } — .blend 파일
  * @param files  같이 불러온 파일 전체 (텍스처를 고르기 위해)
- * @returns {Promise<ArrayBuffer>} GLB
+ * @returns {Promise<{ data: ArrayBuffer, notes: string[] }>} GLB + 사용자에게 알릴 말(못 찾은 텍스처 등)
  */
 export async function convertBlend(entry, files) {
   const pack = {};
@@ -31,7 +31,15 @@ export async function convertBlend(entry, files) {
   try {
     for (let attempt = 0; attempt < 2; attempt++) {
       const res = await request(`convert?main=${encodeURIComponent(entry.path)}`, { method: 'POST', body });
-      if (res.ok) return await res.arrayBuffer();
+      if (res.ok) {
+        let info = {};
+        try {
+          info = JSON.parse(decodeURIComponent(res.headers.get('X-Webtoon-Info') || '%7B%7D'));
+        } catch {
+          // 안내가 없어도 모델은 그대로
+        }
+        return { data: await res.arrayBuffer(), notes: notesFrom(info) };
+      }
       const info = await res.json().catch(() => ({}));
       if (info.code === 'NO_BLENDER' && attempt === 0 && (await askBlenderPath())) continue;
       if (info.code === 'NO_BLENDER') {
@@ -45,6 +53,23 @@ export async function convertBlend(entry, files) {
   } finally {
     note.remove();
   }
+}
+
+/** 변환 안내 → 알림 문장 */
+function notesFrom(info) {
+  const notes = [];
+  const missing = info.missing_textures || [];
+  if (missing.length) {
+    const list = missing.slice(0, 4).join(', ') + (missing.length > 4 ? ' …' : '');
+    notes.push(
+      `텍스처 ${missing.length}개를 못 찾아서 그 부분은 흰색·기본 색으로 나와요 (${list}). ` +
+        `.blend 가 있는 폴더째(텍스처 폴더 포함) 끌어다 놓거나, Blender 에서 '파일 → 외부 데이터 → 리소스 묶기' 후 저장해서 다시 열어 주세요.`,
+    );
+  }
+  if (info.hair_skipped) notes.push(`털·머리카락(헤어 파티클) ${info.hair_skipped}개는 가져오지 못해요.`);
+  if (info.dropped_images?.length) notes.push(`내보낼 수 없는 텍스처 ${info.dropped_images.length}개(UDIM 등)는 빼고 가져왔어요.`);
+  if (info.no_textures) notes.push('텍스처를 내보내지 못해서 텍스처 없이 가져왔어요. (Blender 를 최신 버전으로 업데이트하면 나아질 수 있어요)');
+  return notes;
 }
 
 async function request(path, init = {}) {
@@ -118,7 +143,49 @@ export function tidyBlendScene(scene, parser) {
     delete data.webtoon_hidden;
   });
 
-  // 4) 컬렉션을 물체보다 앞에 (Blender 아웃라이너 순서)
+  // 4) 재질 손보기
+  //    - 유리(투과, transmission): three.js 의 굴절 유리는 뿌옇게·검게 보이고 그림자도 꽉 막음 → 단순한 반투명으로
+  //    - 텍스처 알파로 투명한 것(나뭇잎·철망·데칼): '섞기' 투명은 앞뒤 순서가 꼬여 뒤가 비쳐 보임 → 잘라내기(알파 테스트)로
+  const seen = new Set();
+  scene.traverse((o) => {
+    if (!o.isMesh) return;
+    for (const m of [].concat(o.material)) {
+      if (!m || seen.has(m)) continue;
+      seen.add(m);
+      if (m.transmission > 0) {
+        m.opacity = Math.min(m.opacity, THREE.MathUtils.clamp(1 - 0.8 * m.transmission, 0.2, 1));
+        m.transmission = 0;
+        m.thickness = 0;
+        m.transparent = true;
+        m.depthWrite = false;
+        m.needsUpdate = true;
+      } else if (m.transparent && m.map && m.opacity >= 0.99) {
+        m.transparent = false;
+        m.depthWrite = true;
+        m.alphaTest = 0.5;
+        m.needsUpdate = true;
+      }
+    }
+  });
+
+  // 5) three.js 는 UV 를 4벌(uv ~ uv3)까지만 씀 → 5번째 이후 UV 를 쓰는 텍스처는 4번째 칸으로 옮김
+  //    (안 하면 셰이더 오류로 그 물체가 안 그려짐. Blender 에서 UV 맵이 많거나, 계산해 넣은 UV 가 뒤에 붙은 경우)
+  scene.traverse((o) => {
+    if (!o.isMesh) return;
+    for (const m of [].concat(o.material)) {
+      if (!m) continue;
+      for (const key of Object.keys(m)) {
+        const tex = m[key];
+        if (!tex?.isTexture || !(tex.channel > 3)) continue;
+        const attr = o.geometry.getAttribute(`texcoord_${tex.channel}`);
+        if (attr) o.geometry.setAttribute('uv3', attr);
+        tex.channel = attr ? 3 : 0;
+        m.needsUpdate = true;
+      }
+    }
+  });
+
+  // 6) 컬렉션을 물체보다 앞에 (Blender 아웃라이너 순서)
   scene.traverse((o) => {
     if (o.children.length < 2) return;
     const cols = o.children.filter((c) => c.userData.blendCollection);

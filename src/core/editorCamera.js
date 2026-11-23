@@ -2,6 +2,7 @@
 // 1인칭 모드 동안에는 꺼 둔다 (setActive).
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { visibleBox } from '../models/size.js';
 
 export function createEditorCamera({ camera, canvas, onFrame }) {
   const controls = new OrbitControls(camera, canvas);
@@ -32,7 +33,7 @@ export function createEditorCamera({ camera, canvas, onFrame }) {
   function focusOn(objects) {
     if (!active) return;
     const box = new THREE.Box3();
-    for (const obj of [].concat(objects)) box.expandByObject(obj);
+    for (const obj of [].concat(objects)) box.union(visibleBox(obj, false)); // 숨긴 부품은 빼고
     if (box.isEmpty()) return;
 
     const sphere = box.getBoundingSphere(new THREE.Sphere());

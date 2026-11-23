@@ -62,8 +62,13 @@ async function handle(req, res) {
   if (route === '/convert' && req.method === 'POST') {
     const main = url.searchParams.get('main') || '';
     const body = await readBody(req);
-    const glb = await queue(() => convert(body, main));
-    res.writeHead(200, { 'Content-Type': 'model/gltf-binary', 'Content-Length': glb.length });
+    const { glb, info } = await queue(() => convert(body, main));
+    res.writeHead(200, {
+      'Content-Type': 'model/gltf-binary',
+      'Content-Length': glb.length,
+      // 변환 안내(못 찾은 텍스처 등) — 머리말에는 영문·숫자만 되므로 인코딩
+      'X-Webtoon-Info': encodeURIComponent(JSON.stringify(info || {})),
+    });
     return res.end(glb);
   }
 
@@ -113,7 +118,7 @@ async function convert(body, main) {
   if (isFile(cached)) {
     const now = new Date();
     fs.utimesSync(cached, now, now);
-    return fs.readFileSync(cached);
+    return { glb: fs.readFileSync(cached), info: readJson(`${cached}.json`) };
   }
 
   const blender = findBlender();
@@ -136,10 +141,12 @@ async function convert(body, main) {
     if (timedOut) throw new ConvertError('FAILED', `Blender 변환이 ${TIMEOUT_MS / 60000}분 넘게 걸려서 멈췄어요.`);
     if (code !== 0 || !isFile(out)) throw new ConvertError('FAILED', explainFailure(log, await blenderVersion(blender)));
     const glb = fs.readFileSync(out);
+    const info = readJson(`${out}.json`);
     fs.mkdirSync(CACHE_DIR, { recursive: true });
     fs.writeFileSync(cached, glb);
+    fs.writeFileSync(`${cached}.json`, JSON.stringify(info || {}));
     pruneCache();
-    return glb;
+    return { glb, info };
   } finally {
     fs.rmSync(work, { recursive: true, force: true });
   }
@@ -196,7 +203,10 @@ function pruneCache() {
       .filter((n) => n.endsWith('.glb'))
       .map((n) => ({ file: path.join(CACHE_DIR, n), time: fs.statSync(path.join(CACHE_DIR, n)).mtimeMs }))
       .sort((a, b) => b.time - a.time);
-    for (const e of entries.slice(CACHE_KEEP)) fs.rmSync(e.file, { force: true });
+    for (const e of entries.slice(CACHE_KEEP)) {
+      fs.rmSync(e.file, { force: true });
+      fs.rmSync(`${e.file}.json`, { force: true });
+    }
   } catch {
     // 정리는 실패해도 괜찮음
   }
@@ -319,6 +329,13 @@ function readBody(req) {
     req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
+}
+function readJson(file) {
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch {
+    return null;
+  }
 }
 function sendJson(res, status, data) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
