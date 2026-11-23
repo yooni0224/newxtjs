@@ -1,7 +1,7 @@
 // 프로젝트 저장/불러오기.
 // 프로젝트 파일(.webtoon3d) = ZIP 하나:
 //   project.json              모델 배치·부품·사람(포즈)·컷 목록·설정·지금 시점
-//   bundles/<묶음 id>/<경로>   불러왔던 원본 모델 파일들 (.glb/.gltf/.bin/.obj/.mtl/텍스처)
+//   bundles/<묶음 id>/<경로>   불러왔던 원본 모델 파일들 (.glb/.gltf/.bin/.obj/.mtl/.skp/텍스처)
 // → 이 파일 하나만 옮기면 다른 컴퓨터에서도 그대로 열림.
 // 자동 저장(src/save/autosave.js)도 같은 collect()/apply() 를 씀 (파일은 브라우저 저장소에 따로).
 import * as THREE from 'three';

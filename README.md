@@ -23,7 +23,7 @@
 
 | 하고 싶은 것 | 방법 |
 |---|---|
-| 모델 불러오기 | GLB / GLTF / OBJ 파일(폴더, ZIP 도 됨)을 화면에 끌어다 놓기, 또는 `모델 불러오기…` |
+| 모델 불러오기 | GLB / GLTF / OBJ / SKP(SketchUp) 파일(폴더, ZIP 도 됨)을 화면에 끌어다 놓기, 또는 `모델 불러오기…` |
 | 시점 돌리기 / 이동 / 확대 | 왼쪽 드래그 / 오른쪽 드래그 / 마우스 휠 |
 | 모델 선택 | 클릭 (빈 곳 클릭 또는 `Esc` 로 해제) |
 | 이동 / 회전 / 크기 핸들 | `W` / `E` / `R` 또는 패널 버튼 |
@@ -106,6 +106,16 @@
 
 단위는 미터입니다 (바닥 격자 1칸 = 1m, 진한 선 = 10m).
 
+## SKP(SketchUp) 파일
+
+- `.skp` 파일 하나만 넣으면 됩니다 (재질·텍스처가 파일 안에 있음). SketchUp 2013 ~ 최신 버전 파일.
+- SketchUp 의 그룹·컴포넌트가 레이어 패널에 그대로 나오고, 더블클릭으로 안에 들어가 부품을 옮길 수 있습니다.
+- SketchUp 에서 숨긴 물체·숨긴 태그는 숨긴 채로 들어옵니다 (레이어 패널 눈 아이콘으로 보이기).
+- 칠하지 않은 면은 밝은 회색. TIFF·BMP 텍스처는 평균 색으로 나옵니다.
+- 일부 파일은 못 읽거나 빠지는 부분이 있을 수 있어요 (SketchUp 공식 읽기 도구가 아니라서). 그럴 때는 SketchUp 에서
+  `파일 → 내보내기 → 3D 모델` 에서 **OBJ** 로 내보내서 불러오세요.
+
 ## 사용한 에셋
 
 - 사람 마네킹 모델·포즈 프리셋: Quaternius — Universal Animation Library 1·2 (CC0). 자세한 출처는 [public/people/LICENSE.md](public/people/LICENSE.md)
+- SKP 읽기: [openskp](https://github.com/iamahsanmehmood/openskp) (MIT)
