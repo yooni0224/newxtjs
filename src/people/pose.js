@@ -1,9 +1,11 @@
 // 포즈: 관절 각도 읽기/쓰기, 회전 범위 지키기, 발 바닥에 붙이기, 포즈 프리셋.
 // 관절 그룹을 돌린 뒤에는 syncBody 로 몸(뼈대 모델의 뼈)에 반영 — groundBody 가 해 줌.
-// 포즈 = { 관절 id: [x, y, z] (도) }. 없는 관절은 0 (차렷 자세).
+// 포즈 = { 관절 id: [x, y, z] (도), hands: { L, R } (손 모양 이름) }. 없는 관절은 0 (차렷 자세), 손은 '편하게'.
 // 관절 목록·회전 범위는 src/people/mannequin.js 의 JOINTS.
 import * as THREE from 'three';
 import { JOINTS } from './mannequin.js';
+import { EXTRACTED_POSES } from './poseLibrary.js';
+import { DEFAULT_HAND } from './hands.js';
 
 const { degToRad, radToDeg } = THREE.MathUtils;
 
@@ -12,51 +14,19 @@ const mirror = ([x, y, z]) => [x, -y, -z];
 /** 왼쪽·오른쪽을 같이 적기. both('elbow', [-20, 0, 0]) → { elbowL, elbowR } */
 const both = (base, left) => ({ [base + 'L']: left, [base + 'R']: mirror(left) });
 
+/** 프리셋 분류 (패널에 보이는 순서) */
+export const POSE_CATEGORIES = ['서기', '이동', '앉기·눕기', '동작'];
+
 /**
- * 포즈 프리셋. 값은 [앞뒤 x, 비틀기 y, 옆 z] (도)
+ * 직접 만든 프리셋 (실제 동작 데이터에 없는 것). 값은 [앞뒤 x, 비틀기 y, 옆 z] (도)
  *   팔다리 x: - 앞으로 듦 / 무릎 x: + 굽힘 / 팔꿈치 x: - 굽힘 / 몸통 x: + 앞으로 숙임
  *   왼쪽 z: + 바깥으로 벌림 (오른쪽은 반대 부호)
- * 높이는 자동으로 맞춤 (가장 낮은 곳이 바닥에 닿게)
  */
-export const POSE_PRESETS = {
-  stand: {
-    name: '서기',
-    pose: { ...both('shoulder', [3, 0, 4]), ...both('elbow', [-10, 0, 0]) },
-  },
-  walk: {
-    name: '걷기',
-    pose: {
-      waist: [3, 4, 0],
-      chest: [0, -6, 0],
-      hipL: [-24, 0, 0], kneeL: [6, 0, 0], ankleL: [-8, 0, 0],
-      hipR: [16, 0, 0], kneeR: [22, 0, 0], ankleR: [18, 0, 0],
-      shoulderL: [20, 0, 4], elbowL: [-12, 0, 0],
-      shoulderR: [-22, 0, -4], elbowR: [-28, 0, 0],
-    },
-  },
-  run: {
-    name: '달리기',
-    pose: {
-      waist: [14, 6, 0],
-      chest: [4, -8, 0],
-      neck: [-10, 0, 0],
-      hipL: [-60, 0, 0], kneeL: [85, 0, 0], ankleL: [10, 0, 0],
-      hipR: [25, 0, 0], kneeR: [40, 0, 0], ankleR: [35, 0, 0],
-      shoulderL: [45, 0, 8], elbowL: [-95, 0, 0],
-      shoulderR: [-55, 0, -8], elbowR: [-100, 0, 0],
-    },
-  },
-  sitChair: {
-    name: '의자에 앉기',
-    pose: {
-      ...both('hip', [-90, 0, 6]),
-      ...both('knee', [90, 0, 0]),
-      ...both('shoulder', [-18, 0, 6]),
-      ...both('elbow', [-62, 0, 0]),
-    },
-  },
+const CUSTOM_PRESETS = {
   sitFloor: {
-    name: '바닥에 앉기',
+    name: '양반다리',
+    category: '앉기·눕기',
+    after: 'sitTalk', // 이 프리셋 뒤에 보이게
     pose: {
       waist: [8, 0, 0],
       neck: [-8, 0, 0],
@@ -66,17 +36,24 @@ export const POSE_PRESETS = {
       ...both('ankle', [20, 0, 0]),
       ...both('shoulder', [-22, 0, 8]),
       ...both('elbow', [-55, 0, 0]),
-    },
-  },
-  armsCrossed: {
-    name: '팔짱',
-    pose: {
-      shoulderL: [-28, -78, 14], elbowL: [-118, 0, 0],
-      shoulderR: [-32, 78, -14], elbowR: [-112, 0, 0],
-      ...both('wrist', [0, 0, 0]),
+      hands: { L: 'relaxed', R: 'relaxed' },
     },
   },
 };
+
+/**
+ * 포즈 프리셋: 실제 동작 데이터에서 뽑은 것(src/people/poseLibrary.js, tools/pose-extract) + 직접 만든 것.
+ * { id: { name, category, pose } } — 높이는 자동으로 맞춤 (가장 낮은 곳이 바닥에 닿게)
+ */
+export const POSE_PRESETS = (() => {
+  const out = {};
+  for (const [id, preset] of Object.entries(EXTRACTED_POSES)) {
+    out[id] = preset;
+    for (const [cid, custom] of Object.entries(CUSTOM_PRESETS)) if (custom.after === id) out[cid] = custom;
+  }
+  for (const [cid, custom] of Object.entries(CUSTOM_PRESETS)) if (!out[cid]) out[cid] = custom;
+  return out;
+})();
 
 /** 마네킹 그룹 (사람 root 의 자식) */
 export function bodyOf(person) {
@@ -93,6 +70,8 @@ export function getPose(person) {
     const deg = [r.x, r.y, r.z].map((a) => Math.round(radToDeg(a) * 100) / 100);
     if (deg.some((d) => d !== 0)) pose[id] = deg;
   }
+  const hands = body.userData.getHands?.();
+  if (hands) pose.hands = hands;
   return pose;
 }
 
@@ -105,6 +84,7 @@ export function setPose(person, pose = {}) {
     joint.rotation.set(degToRad(x), degToRad(y), degToRad(z), 'XZY');
     clampJoint(joint);
   }
+  body.userData.setHands?.({ L: pose.hands?.L || DEFAULT_HAND, R: pose.hands?.R || DEFAULT_HAND });
   groundBody(body);
 }
 

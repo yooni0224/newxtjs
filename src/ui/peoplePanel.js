@@ -3,7 +3,8 @@
 // 포즈 버튼은 선택한 사람에게만.
 import { on } from '../core/events.js';
 import { cameraYaw } from '../camera/walkMode.js';
-import { POSE_PRESETS, getPose, jointName } from '../people/pose.js';
+import { POSE_PRESETS, POSE_CATEGORIES, getPose, jointName } from '../people/pose.js';
+import { HAND_SHAPES } from '../people/hands.js';
 import { bindNumberField, showNumber } from './numberField.js';
 import { toast } from './toast.js';
 
@@ -84,6 +85,26 @@ export function setupPeoplePanel({ people, picker, selection, camera, poseMode }
   // ---------- 포즈 ----------
   const btnPoseMode = $('btn-pose-mode');
   const poseHint = $('pose-hint');
+  // 프리셋 버튼: 분류별로 만들기
+  const presetBox = $('pose-presets');
+  for (const category of POSE_CATEGORIES) {
+    const entries = Object.entries(POSE_PRESETS).filter(([, p]) => p.category === category);
+    if (!entries.length) continue;
+    const group = document.createElement('div');
+    group.className = 'preset-group';
+    const title = document.createElement('h4');
+    title.textContent = category;
+    const grid = document.createElement('div');
+    grid.className = 'btn-grid three';
+    for (const [id, preset] of entries) {
+      const btn = document.createElement('button');
+      btn.dataset.pose = id;
+      btn.textContent = preset.name;
+      grid.append(btn);
+    }
+    group.append(title, grid);
+    presetBox.append(group);
+  }
   const presetButtons = [...document.querySelectorAll('[data-pose]')];
   const btnReset = $('btn-pose-reset');
   const btnCopy = $('btn-pose-copy');
@@ -117,13 +138,45 @@ export function setupPeoplePanel({ people, picker, selection, camera, poseMode }
     if (person && clipboard) people.applyPose(person, clipboard);
   });
 
+  // ---------- 손 모양 ----------
+  const handSideButtons = [...document.querySelectorAll('[data-hand-side]')];
+  const handBox = $('hand-shapes');
+  let handSide = 'both';
+  for (const [id, shape] of Object.entries(HAND_SHAPES)) {
+    const btn = document.createElement('button');
+    btn.dataset.hand = id;
+    btn.textContent = shape.name;
+    btn.addEventListener('click', () => {
+      const person = selectedPerson();
+      if (!person) return;
+      const sides = handSide === 'both' ? { L: id, R: id } : { [handSide]: id };
+      people.setHands(person, sides);
+    });
+    handBox.append(btn);
+  }
+  const handButtons = [...handBox.querySelectorAll('[data-hand]')];
+  for (const btn of handSideButtons) {
+    btn.addEventListener('click', () => {
+      handSide = btn.dataset.handSide;
+      refreshPose();
+    });
+  }
+
   function refreshPose() {
     const person = selectedPerson();
     const joint = poseMode.getJoint();
     btnPoseMode.disabled = !person;
     btnPoseMode.classList.toggle('active', poseMode.isActive());
     btnPoseMode.textContent = poseMode.isActive() ? '포즈 모드 끝내기 (Esc)' : '포즈 모드 (관절 돌리기)';
-    for (const btn of [...presetButtons, btnReset, btnCopy]) btn.disabled = !person;
+    for (const btn of [...presetButtons, btnReset, btnCopy, ...handButtons]) btn.disabled = !person;
+    // 손 모양: 고른 쪽(양손이면 둘이 같을 때)의 지금 모양에 표시
+    const hands = person && getPose(person).hands;
+    for (const btn of handSideButtons) btn.classList.toggle('active', btn.dataset.handSide === handSide);
+    for (const btn of handButtons) {
+      const id = btn.dataset.hand;
+      const on = !!hands && (handSide === 'both' ? hands.L === id && hands.R === id : hands[handSide] === id);
+      btn.classList.toggle('active', on);
+    }
     btnPaste.disabled = !person || !clipboard;
     $('pose-target').textContent = person ? '(선택한 사람)' : '';
     if (!person) poseHint.textContent = '사람을 고른 뒤 누르거나, 사람을 더블클릭하세요.';
@@ -134,5 +187,6 @@ export function setupPeoplePanel({ people, picker, selection, camera, poseMode }
   on('selection-changed', refreshPose);
   on('pose-mode-changed', refreshPose);
   on('pose-joint-changed', refreshPose);
+  on('pose-changed', refreshPose);
   refreshPose();
 }

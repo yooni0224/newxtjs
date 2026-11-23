@@ -435,3 +435,16 @@ button.active kbd { color: #fff; }
   z-index: 5;
 }
 #recovery-banner button { padding: 5px 12px; }
+
+/* 포즈 프리셋 묶음 · 손 모양 */
+.btn-grid.four { grid-template-columns: 1fr 1fr 1fr 1fr; }
+.btn-grid.four button { font-size: 12px; padding: 6px 2px; }
+.preset-group { margin-bottom: 6px; }
+.preset-group h4 {
+  margin: 8px 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.preset-group .btn-grid { margin-bottom: 0; }
+.preset-group button { font-size: 12px; padding: 5px 2px; }

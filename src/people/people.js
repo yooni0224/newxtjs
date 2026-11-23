@@ -96,6 +96,13 @@ export function createPeople(scene) {
     emit('people-changed');
   }
 
+  /** 손 모양 바꾸기. sides = { L: '주먹 같은 이름', R: … } (한쪽만 줘도 됨) */
+  function setHands(root, sides) {
+    const pose = getPose(root);
+    setPose(root, { ...pose, hands: { ...pose.hands, ...sides } });
+    emit('pose-changed', root);
+  }
+
   /** 포즈 바꾸기 (프리셋, 붙여넣기, 초기화) */
   function applyPose(root, pose) {
     setPose(root, pose);
@@ -118,6 +125,7 @@ export function createPeople(scene) {
     setHeight,
     setBody,
     applyPose,
+    setHands,
     getPose,
     list: () => group.children,
     isVisible: () => group.visible,

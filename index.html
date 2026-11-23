@@ -133,23 +133,25 @@
           </label>
 
           <!-- 포즈 (src/people/poseMode.js, src/people/pose.js) -->
-          <!-- 프리셋 각도는 src/people/pose.js 의 POSE_PRESETS 에서 고침 -->
+          <!-- 프리셋: 실제 동작에서 뽑은 것(tools/pose-extract/spec.js) + 직접 만든 것(src/people/pose.js) -->
           <h3>포즈 <span id="pose-target" class="dim"></span></h3>
           <button id="btn-pose-mode" class="wide">포즈 모드 (관절 돌리기)</button>
           <p id="pose-hint" class="hint">사람을 고른 뒤 누르거나, 사람을 더블클릭하세요.</p>
-          <div id="pose-presets" class="btn-grid three">
-            <button data-pose="stand">서기</button>
-            <button data-pose="walk">걷기</button>
-            <button data-pose="run">달리기</button>
-            <button data-pose="sitChair">의자에<br />앉기</button>
-            <button data-pose="sitFloor">바닥에<br />앉기</button>
-            <button data-pose="armsCrossed">팔짱</button>
-          </div>
+          <!-- 프리셋 버튼은 src/ui/peoplePanel.js 가 분류별로 만들어 넣음 -->
+          <div id="pose-presets"></div>
           <div class="btn-row">
             <button id="btn-pose-reset">초기화</button>
             <button id="btn-pose-copy">포즈 복사</button>
             <button id="btn-pose-paste">붙여넣기</button>
           </div>
+          <!-- 손 모양 (src/people/hands.js) -->
+          <h3>손 모양</h3>
+          <div class="btn-row" id="hand-sides">
+            <button data-hand-side="both" class="active">양손</button>
+            <button data-hand-side="L">왼손</button>
+            <button data-hand-side="R">오른손</button>
+          </div>
+          <div id="hand-shapes" class="btn-grid four"></div>
         </details>
 
         <!-- 편집 핸들 (src/ui/toolbar.js, src/editor/gizmo.js) -->
