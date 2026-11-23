@@ -23,7 +23,7 @@
         <!-- 컷 프레임·3분할·눈높이선을 덧그리는 곳 (src/cut/cutFrame.js) -->
         <canvas id="overlay"></canvas>
         <div id="empty-hint">
-          <p class="big">GLB · GLTF · OBJ · SKP 파일을 여기에 끌어다 놓으세요</p>
+          <p class="big">GLB · GLTF · OBJ · SKP · BLEND 파일을 여기에 끌어다 놓으세요</p>
           <p>여러 개 / 폴더 / ZIP 도 됩니다</p>
         </div>
         <div id="drop-overlay"><p>놓으면 불러옵니다</p></div>
@@ -67,8 +67,8 @@
           <p class="hint">프로젝트 파일(.webtoon3d) 하나에 모델 파일까지 다 들어 있어서, 그 파일만 옮기면 다른 컴퓨터에서도 열립니다.</p>
           <p id="autosave-status" class="hint dim-status"></p>
           <button id="btn-open" class="wide">모델 불러오기…</button>
-          <input id="file-input" type="file" multiple accept=".glb,.gltf,.obj,.skp,.mtl,.bin,.zip,.png,.jpg,.jpeg,.webp,.webtoon3d" hidden />
-          <p class="hint">GLTF·OBJ는 .bin/.mtl/텍스처를 함께 선택하거나 폴더째 끌어다 놓으세요. SKP(SketchUp)는 파일 하나면 돼요.</p>
+          <input id="file-input" type="file" multiple accept=".glb,.gltf,.obj,.skp,.blend,.mtl,.bin,.zip,.png,.jpg,.jpeg,.webp,.webtoon3d" hidden />
+          <p class="hint">GLTF·OBJ는 .bin/.mtl/텍스처를 함께 선택하거나 폴더째 끌어다 놓으세요. SKP(SketchUp)는 파일 하나면 돼요. BLEND(Blender)는 이 컴퓨터에 Blender가 설치돼 있어야 열려요.</p>
         </details>
 
         <!-- 인물 시점 (src/ui/cameraPanel.js, src/camera/walkMode.js, src/camera/lens.js) -->

@@ -9,7 +9,7 @@
 
 ### 1단계: 기본 화면 ✅
 - [x] 바닥 그리드, 기본 조명, 단위는 미터(1 = 1m)
-- [x] GLB/GLTF/OBJ 파일 드래그 앤 드롭으로 불러오기(여러 개) — SKP(SketchUp)도 (아래 '추가: SKP 불러오기')
+- [x] GLB/GLTF/OBJ 파일 드래그 앤 드롭으로 불러오기(여러 개) — SKP(SketchUp)·BLEND(Blender)도 (아래 '추가')
 - [x] 마우스로 시점 돌리기/이동/확대 (편집용 시점)
 - [x] 모델 클릭 → 이동/회전/크기 핸들, 복제(Ctrl+D), 삭제(Delete)
 - [x] 선택한 모델 높이(m) 표시, 숫자로 높이 입력하면 비율 유지하며 크기 맞추기
@@ -111,6 +111,21 @@
 - 한계: SketchUp 공식 형식 문서가 없어 거꾸로 분석한 라이브러리라 일부 파일은 못 읽거나 빠지는 부분이 있을 수 있음
   (그럴 때는 SketchUp 에서 OBJ 로 내보내서 불러오기). TIFF·BMP 텍스처는 평균 색으로, 장면(Scenes)·치수·글자는 안 가져옴
 
+### 추가: BLEND(Blender) 불러오기 ✅
+- [x] `.blend` 파일을 끌어다 놓기 / `모델 불러오기…` — 이 컴퓨터에 설치된 Blender 로 GLB 로 바꿔서 불러옴
+      (툴을 start 파일·`npm run dev` 로 켰을 때. 화면 없이 Blender 를 실행, 보통 몇 초)
+- [x] 모디파이어(미러·배열·베벨·서브디비전·불리언·아마추어 포즈 등) 적용된 모양 그대로, 글자·곡선도 메시로
+- [x] 컬렉션 = 그룹 → 레이어 패널이 Blender 아웃라이너처럼 (컬렉션 → 물체), 물체 이름 그대로(한글·띄어쓰기 포함)
+- [x] Blender 에서 숨긴 것(눈 아이콘·화면에서 끈 것·렌더에서 끈 것·와이어/상자 표시 보조 물체·숨긴 컬렉션) = 숨김으로,
+      뷰 레이어에서 뺀 컬렉션은 안 가져옴, 컬렉션 인스턴스는 가져옴
+- [x] 재질(Principled BSDF 색·텍스처), .blend 에 묶인 텍스처, 폴더째 넣으면 바깥 텍스처도 (이름으로 찾아 연결)
+- [x] 재질이 여럿인 물체도 메시 하나 (재질별 조각을 합침)
+- [x] Blender 자동 찾기 (윈도우·맥·리눅스 기본 설치 위치, 스팀) → 못 찾으면 위치를 한 번 물어보고 기억(`.blender-path`)
+- [x] 같은 파일은 다시 변환하지 않음 (결과 보관) → 프로젝트 다시 열기·자동 저장 복구가 빠름
+- [x] 실패 이유 안내: Blender 없음 / 더 새 버전 Blender 로 저장한 파일 / 서버 없이(웹에 올린 완성본) 연 경우
+- 한계: Blender 가 있어야 함. 노드가 복잡한 재질은 기본 색·텍스처 정도로만, 애니메이션·뼈대·셰이프키·카메라·조명은 안 가져옴
+  (지금 보이는 자세 그대로). 다른 .blend 에서 링크한 물체는 그 파일도 같은 폴더 구조로 같이 넣어야 함
+
 ### 4단계: 저장 ✅
 - [x] 현재 시점(카메라 위치·높이·방향·화각)을 이름 붙은 '컷'으로 저장, 목록 클릭하면 그 시점으로 이동
       (편집 시점 / 1인칭 그대로 — 1인칭은 발 높이·눈높이·고개 각도까지), ⟳ 지금 상태로 바꾸기, ✎ 이름, ✕ 지우기
@@ -144,9 +159,10 @@ src/
     environment.js       바닥 그리드·조명(하늘빛·해)·배경색
     editorCamera.js      편집용 시점(마우스 회전/이동/확대), F 시점 맞추기
   models/
-    loadFiles.js         파일 → 3D 모델 (GLB/GLTF/OBJ/SKP/ZIP)
+    loadFiles.js         파일 → 3D 모델 (GLB/GLTF/OBJ/SKP/BLEND/ZIP)
     skpLoader.js         SKP(SketchUp) → 3D 모델: 그룹·컴포넌트 구조, 재질·텍스처, 숨김, 같은 컴포넌트는 모양 공유
     skpWorker.js         SKP 파일 읽기 작업자(Web Worker, openskp)
+    blendLoader.js       BLEND → 개발 서버에 변환 요청(텍스처 같이), Blender 위치 묻기, 받은 GLB 정리(이름·숨김·컬렉션 순서·조각 합치기)
     dropZone.js          드래그 앤 드롭, '모델 불러오기' 버튼
     modelStore.js        배치된 모델 목록: 추가/복제/삭제(모델 전체·부품), 숨기기/잠그기, 원본 파일 묶음, 되살리기
     size.js              높이 재기, 높이 맞추기
@@ -196,6 +212,9 @@ src/
   export/
     exportImage.js       프레임 안쪽만 PNG 로 (일반 렌더 + AO + 선 / 선화 / 그림자만 + AO), 내려받기
     shadowOnly.js        그림자만: 재질을 잠깐 '그림자 전용'으로 바꿔 흰 바탕 + 회색 그림자
+server/                  개발 서버에 붙는 기능 (브라우저가 아니라 내 컴퓨터에서 돎)
+  blendConvert.js        BLEND 변환: Blender 찾기, 요청 받기(이 툴 화면에서 온 것만), 변환 결과 보관
+  blend_to_glb.py        Blender 안에서 도는 변환 스크립트 (숨김 기록, 컬렉션 → 그룹, 모디파이어 적용 GLB 내보내기)
 public/draco/            압축(Draco) GLB 해제용 파일 (건드리지 않아도 됨)
 public/people/           사람 마네킹 모델 (남성·여성 GLB, CC0) + 출처·라이선스(LICENSE.md)
 tools/pose-extract/      포즈 프리셋 뽑는 도구 (동작 파일은 source/ 에 따로 받음, README.md)
@@ -221,6 +240,20 @@ tools/pose-extract/      포즈 프리셋 뽑는 도구 (동작 파일은 source
   바뀜 신호(`projectPanel.js` 의 CHANGE_EVENTS) → 1초 뒤 저장, 시점만 바뀐 건 20초마다 확인, 탭을 숨기거나 닫을 때도 시도.
   다시 열 때 current 에 내용(모델·사람·컷)이 있으면 recovery 로 옮기고 '복구 / 버리기' 안내 → 그동안의 새 작업은 current 에
   저장되므로 복구용을 덮어쓰지 않음. 어디에도 안 쓰는 원본 파일 묶음은 지움.
+- **BLEND(`server/blendConvert.js`, `server/blend_to_glb.py`, `models/blendLoader.js`)**: .blend 는 모디파이어·노드 재질을
+  Blender 만 계산할 수 있어서 브라우저에서 직접 읽지 않고, Vite 개발 서버(·미리보기 서버) 플러그인이 이 컴퓨터의 Blender 를
+  `blender -b --factory-startup -Y 파일 --python blend_to_glb.py` 로 실행해 GLB 로 바꿈. 브라우저는 .blend + 같이 넣은 텍스처·.blend 를
+  ZIP(압축 없음)으로 보내고(`POST /api/blend/convert?main=경로`), 받은 GLB 를 GLTFLoader 로 읽음.
+  스크립트: 빠진 텍스처 찾기(`find_missing_files`) → 뷰 레이어에서 뺀 컬렉션 떼어 내기 → 숨김 상태를 사용자 속성(`webtoon_hidden`)으로
+  적고 모두 보이게(숨긴 것은 평가가 안 될 수 있어서) → 컬렉션마다 빈 물체를 만들어 부모로(`webtoon_name` = 원래 이름, Blender 가
+  같은 이름 물체가 있으면 '.001' 을 붙여서) → glTF 내보내기(모디파이어 적용, 사용자 속성은 extras 로 → three.js 의 userData).
+  Blender 버전마다 다른 옵션은 있는 것만 골라 씀(4.0·5.3 에서 확인). 파일을 못 열면 Blender 가 기본 장면으로 계속 도는 걸 막음.
+  안전: 요청에 `X-Webtoon` 머리말 + 같은 출처만 받음(다른 사이트가 몰래 Blender 를 돌리거나 실행 파일 위치를 바꾸지 못하게),
+  사용자가 알려 준 위치는 이름이 blender 인 실행 파일만, .blend 안 파이썬 자동 실행 끔(-Y), ZIP 경로가 작업 폴더 밖으로 못 나감.
+  보관: 열쇠 = 스크립트 + 파일 이름·내용의 해시(ZIP 은 만든 시각이 들어가서 안 씀), `node_modules/.cache/webtoon-blend`, 최근 30개.
+  정리(`tidyBlendScene`): GLTFLoader 가 띄어쓰기를 '_' 로 바꾼 이름을 원래대로, 재질이 여럿인 메시(그룹 + 조각들, parser.associations 로
+  구분)를 메시 하나 + 재질 배열로(같은 메시는 합친 모양도 같이 씀), 컬렉션을 물체보다 앞으로 — 모두 불러올 때마다 같은 순서라
+  저장된 부품 위치(`srcPath`)가 그대로 맞음.
 - **불러올 때 정리**: 파일에 딸린 조명·카메라는 제거, 면은 양면 표시(방 안에서 벽이 뚫려 보이지 않게).
   단 SKP 는 그대로: 면 앞뒤 색이 같으면 양면 재질, 다르면 앞면·뒷면(뒤집은 복사본)이 따로 와서 각각 한쪽만 그려야 깜빡이지 않음
   (`material.userData.fixedSide`).

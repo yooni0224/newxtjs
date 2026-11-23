@@ -1,5 +1,6 @@
-// 파일 → 3D 객체로 바꾸기 (GLB / GLTF / OBJ / SKP, ZIP 안에 든 것도).
+// 파일 → 3D 객체로 바꾸기 (GLB / GLTF / OBJ / SKP / BLEND, ZIP 안에 든 것도).
 // SKP(SketchUp) 는 src/models/skpLoader.js 에서 (재질·텍스처가 파일 안에 다 들어 있음).
+// BLEND(Blender) 는 이 컴퓨터의 Blender 로 GLB 로 바꿔서 읽음: src/models/blendLoader.js
 // GLTF 의 .bin·텍스처, OBJ 의 .mtl·텍스처는 함께 넣은 파일들 중에서 이름으로 찾아 연결한다.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -9,8 +10,9 @@ import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { unzipSync } from 'three/addons/libs/fflate.module.js';
 import { loadSkp } from './skpLoader.js';
+import { convertBlend, tidyBlendScene } from './blendLoader.js';
 
-export const MODEL_EXTENSIONS = ['glb', 'gltf', 'obj', 'skp'];
+export const MODEL_EXTENSIONS = ['glb', 'gltf', 'obj', 'skp', 'blend'];
 
 // 압축(Draco)된 GLB 를 풀기 위한 해제기. 파일은 public/draco 폴더에 있음.
 const base = import.meta.env.BASE_URL;
@@ -34,7 +36,7 @@ export async function loadModelsFromFiles(entries) {
   const warnings = [];
 
   if (modelEntries.length === 0) {
-    errors.push('불러올 모델 파일(GLB/GLTF/OBJ/SKP)이 없어요.');
+    errors.push('불러올 모델 파일(GLB/GLTF/OBJ/SKP/BLEND)이 없어요.');
     return { models, files: all, errors, warnings };
   }
 
@@ -85,13 +87,16 @@ async function loadOne(entry, resolver) {
   let object;
   let noMtl = false;
 
-  if (type === 'glb' || type === 'gltf') {
+  if (type === 'glb' || type === 'gltf' || type === 'blend') {
     const loader = new GLTFLoader(manager);
     loader.setDRACOLoader(draco);
     loader.setMeshoptDecoder(MeshoptDecoder);
-    const data = type === 'glb' ? await entry.file.arrayBuffer() : await entry.file.text();
+    let data;
+    if (type === 'blend') data = await convertBlend(entry, resolver.files);
+    else data = type === 'glb' ? await entry.file.arrayBuffer() : await entry.file.text();
     const gltf = await loader.parseAsync(data, '');
     object = gltf.scene || gltf.scenes[0];
+    if (type === 'blend') tidyBlendScene(object, gltf.parser);
   } else if (type === 'obj') {
     const text = await entry.file.text();
     const loader = new OBJLoader(manager);
@@ -185,7 +190,7 @@ function createResolver(modelEntry, all) {
     return urls.get(entry);
   }
 
-  return { find, resolve, missing };
+  return { find, resolve, missing, files: all };
 }
 
 // ---------- 경로 도우미 ----------
